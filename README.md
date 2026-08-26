@@ -1,93 +1,59 @@
-# Desafio 01
+# Spotify track analysis
 
+Reproducible exploratory analysis of Spotify track metadata and audio features using [Marimo](https://marimo.io/), [DuckDB](https://duckdb.org/), and [Polars](https://pola.rs/).
 
+The project is question-led: charts and models should answer a documented question, make their grain and aggregation explicit, and state what the data cannot establish. The first pass covers data quality, missing-value strategies, distributions, relationships, genre-aware comparisons, PCA, clustering, and bounded graph-derived views.
 
-## Getting started
+## Repository layout
 
-To make it easy for you to get started with GitLab, here's a list of recommended next steps.
-
-Already a pro? Just edit this README.md and make it your own. Want to make it easy? [Use the template at the bottom](#editing-this-readme)!
-
-## Add your files
-
-* [Create](https://docs.gitlab.com/user/project/repository/web_editor/#create-a-file) or [upload](https://docs.gitlab.com/user/project/repository/web_editor/#upload-a-file) files
-* [Add files using the command line](https://docs.gitlab.com/topics/git/add_files/#add-files-to-a-git-repository) or push an existing Git repository with the following command:
-
-```
-cd existing_repo
-git remote add origin https://gitlab.com/residencia-em-ia/desafio-01.git
-git branch -M main
-git push -uf origin main
+```text
+data/raw/spotify_tracks.csv       # input CSV, added later
+docs/data-contract.md             # source, grain, schema, and quality rules
+docs/contributing.md              # issue, chart, and merge-request workflow
+notebooks/                        # Marimo notebooks (.py), when added
+tests/                            # focused tests, when added
+pyproject.toml                   # dependencies and project tooling
 ```
 
-## Integrate with your tools
+## Quick start
 
-* [Set up project integrations](https://gitlab.com/residencia-em-ia/desafio-01/-/settings/integrations)
+Requires Python 3.12+ and [uv](https://docs.astral.sh/uv/).
 
-## Collaborate with your team
+```bash
+uv sync
+uv run marimo edit notebooks/spotify_analysis.py
+```
 
-* [Invite team members and collaborators](https://docs.gitlab.com/user/project/members/)
-* [Create a new merge request](https://docs.gitlab.com/user/project/merge_requests/creating_merge_requests/)
-* [Automatically close issues from merge requests](https://docs.gitlab.com/user/project/issues/managing_issues/#closing-issues-automatically)
-* [Enable merge request approvals](https://docs.gitlab.com/user/project/merge_requests/approvals/)
-* [Set auto-merge](https://docs.gitlab.com/user/project/merge_requests/auto_merge/)
+For a non-interactive smoke run and notebook validation:
 
-## Test and Deploy
+```bash
+uv run marimo check notebooks/spotify_analysis.py
+uv run python notebooks/spotify_analysis.py
+uv run pytest
+```
 
-Use the built-in continuous integration in GitLab.
+The input file is expected at `data/raw/spotify_tracks.csv`. The notebook should fail with a clear missing-file error if it is not present; do not silently download, synthesize, or replace the source data.
 
-* [Get started with GitLab CI/CD](https://docs.gitlab.com/ci/quick_start/)
-* [Analyze your code for known vulnerabilities with Static Application Security Testing (SAST)](https://docs.gitlab.com/user/application_security/sast/)
-* [Deploy to Kubernetes, Amazon EC2, or Amazon ECS using Auto Deploy](https://docs.gitlab.com/topics/autodevops/requirements/)
-* [Use pull-based deployments for improved Kubernetes management](https://docs.gitlab.com/user/clusters/agent/)
-* [Set up protected environments](https://docs.gitlab.com/ci/environments/protected_environments/)
+## Data architecture
 
-***
+Each runtime creates an in-memory DuckDB connection and rebuilds its tables from the raw CSV. DuckDB is an ephemeral query layer: do not create, commit, cache, or depend on `.duckdb`/`.db` files. Use DuckDB for scans, joins, deduplication, window functions, and grouped SQL; return bounded results to Polars for typed feature work and charts.
 
-# Editing this README
+The analysis uses two explicit grains:
 
-When you're ready to make this README your own, just edit this file and use the handy template below (or feel free to structure it however you want - this is just a starting point!). Thanks to [makeareadme.com](https://www.makeareadme.com/) for this template.
+- `tracks_raw`: one row per source CSV row; duplicates are retained for auditability.
+- `tracks`: one canonical row per `track_id`, used for track-level features, PCA, clustering, and popularity summaries.
+- `track_genres`: one row per track–genre relationship, used for genre comparisons and graph-derived views.
 
-## Suggestions for a good README
+See [docs/data-contract.md](docs/data-contract.md) for the full contract and quality policy.
 
-Every project is different, so consider which of these sections apply to yours. The sections used in the template are suggestions for most open source projects. Also keep in mind that while a README can be too long and detailed, too long is better than too short. If you think your README is too long, consider utilizing another form of documentation rather than cutting out information.
+## Visualization principles
 
-## Name
-Choose a self-explaining name for your project.
-
-## Description
-Let people know what your project can do specifically. Provide context and add a link to any reference visitors might be unfamiliar with. A list of Features or a Background subsection can also be added here. If there are alternatives to your project, this is a good place to list differentiating factors.
-
-## Badges
-On some READMEs, you may see small images that convey metadata, such as whether or not all the tests are passing for the project. You can use Shields to add some to your README. Many services also have instructions for adding a badge.
-
-## Visuals
-Depending on what you are making, it can be a good idea to include screenshots or even a video (you'll frequently see GIFs rather than actual videos). Tools like ttygif can help, but check out Asciinema for a more sophisticated method.
-
-## Installation
-Within a particular ecosystem, there may be a common way of installing things, such as using Yarn, NuGet, or Homebrew. However, consider the possibility that whoever is reading your README is a novice and would like more guidance. Listing specific steps helps remove ambiguity and gets people to using your project as quickly as possible. If it only runs in a specific context like a particular programming language version or operating system or has dependencies that have to be installed manually, also add a Requirements subsection.
-
-## Usage
-Use examples liberally, and show the expected output if you can. It's helpful to have inline the smallest example of usage that you can demonstrate, while providing links to more sophisticated examples if they are too long to reasonably include in the README.
-
-## Support
-Tell people where they can go to for help. It can be any combination of an issue tracker, a chat room, an email address, etc.
-
-## Roadmap
-If you have ideas for releases in the future, it is a good idea to list them in the README.
+Every chart must identify its question, unit of analysis, aggregation, and relevant caveat. Outputs should be bounded and readable in Marimo; avoid displaying full tables or raw graph objects. Genre charts must show sparse-group handling and clarify whether multi-genre tracks contribute to multiple groups. Treemaps and networks are allowed only when the hierarchy or edges represent a meaningful relationship—for example, `genre → artist → track` or an aggregated genre-overlap network.
 
 ## Contributing
-State if you are open to contributions and what your requirements are for accepting them.
 
-For people who want to make changes to your project, it's helpful to have some documentation on how to get started. Perhaps there is a script that they should run or some environment variables that they need to set. Make these steps explicit. These instructions could also be useful to your future self.
+Start with the existing GitLab guide questions, then open a focused issue for the concrete analysis or engineering deliverable. Link the issue to its question, grain, method, expected artifact, caveats, and definition of done. Keep exploratory claims descriptive unless a validated target and held-out evaluation support a predictive claim. Full workflow details are in [docs/contributing.md](docs/contributing.md).
 
-You can also document commands to lint the code or run tests. These steps help to ensure high code quality and reduce the likelihood that the changes inadvertently break something. Having instructions for running tests is especially helpful if it requires external setup, such as starting a Selenium server for testing in a browser.
+## Current scope and next paths
 
-## Authors and acknowledgment
-Show your appreciation to those who have contributed to the project.
-
-## License
-For open source projects, say how it is licensed.
-
-## Project status
-If you have run out of energy or time for your project, put a note at the top of the README saying that development has slowed down or stopped completely. Someone may choose to fork your project or volunteer to step in as a maintainer or owner, allowing your project to keep going. You can also make an explicit request for maintainers.
+The initial milestones are Foundation, General and genre analysis, and Final story. Possible follow-ups include genre-overlap and artist–genre graphs, sensitivity analysis for duplicate and multi-genre policies, time-aware analysis if temporal data is added, and baseline popularity modeling with group-aware evaluation. These are hypotheses to investigate, not conclusions implied by the current CSV.
