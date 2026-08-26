@@ -45,6 +45,7 @@ The analysis uses two explicit grains:
 - `track_genres`: one row per track–genre relationship, used for genre comparisons and graph-derived views.
 
 See [docs/data-contract.md](docs/data-contract.md) for the full contract and quality policy.
+The measured rationale for the ephemeral DuckDB layer is in [docs/duckdb-benchmark.md](docs/duckdb-benchmark.md).
 
 ## Visualization principles
 
