@@ -21,19 +21,43 @@ available in the workspace:
 | Predictive validation and fingerprints | [Molab](https://molab.marimo.io/notebooks/nb_NG4NB8MfPymmLy4bxoEq3N) | imported; context missing |
 | Integrating analysis | [Molab](https://molab.marimo.io/notebooks/nb_KHYNaR7cz9CKmiRaGfDVZt) | imported; context missing |
 
-## Recommended flow
+## GitHub mirror and contextual preview
 
-Once the GitHub account is authenticated, the project can be mirrored
-one-way (GitLab remains the source) and opened through Molab's GitHub preview.
-That flow makes repository files available in the workspace. Without a
-mirror, the fallback is to upload the files through the File Browser; the CSV
-and modules must be present in the expected tree. A temporary bundle can be
-used for this test, but it must not be committed or replace the versioned CSV.
+The public mirror is available at
+[`d4vidz/desafio-01`](https://github.com/d4vidz/desafio-01). GitLab remains the
+canonical source; GitHub is the public preview and Molab execution surface.
+The branch below contains the current working commit `2ee61b4`:
 
-After publication, update this table with permanent links and the source
-commit/ref, verification date, all-cell status, CSV access, dependencies, and
-output size. A link receives “verified” status only after a top-to-bottom run
-without errors.
+| Notebook | Contextual Molab preview | Verification on 2026-09-02 (BRT) |
+| --- | --- | --- |
+| Data contract audit | [open](https://molab.marimo.io/github/d4vidz/desafio-01/blob/chore/45-versionar-governanca-e-analises/notebooks/data_contract_audit.py) | HTTP route 200; runtime pending |
+| Popularity associations | [open](https://molab.marimo.io/github/d4vidz/desafio-01/blob/chore/45-versionar-governanca-e-analises/notebooks/explorations/popularity_associations.py) | HTTP route 200; runtime pending |
+| Genre representations and graphs | [open](https://molab.marimo.io/github/d4vidz/desafio-01/blob/chore/45-versionar-governanca-e-analises/notebooks/explorations/genre_representations.py) | HTTP route 200; runtime pending |
+| Musical structure | [open](https://molab.marimo.io/github/d4vidz/desafio-01/blob/chore/45-versionar-governanca-e-analises/notebooks/explorations/musical_structure.py) | HTTP route 200; runtime pending |
+| Predictive validation and fingerprints | [open](https://molab.marimo.io/github/d4vidz/desafio-01/blob/chore/45-versionar-governanca-e-analises/notebooks/explorations/popularity_validation.py) | HTTP route 200; runtime pending |
+| Integrating analysis | [open](https://molab.marimo.io/github/d4vidz/desafio-01/blob/chore/45-versionar-governanca-e-analises/notebooks/spotify_analysis.py) | HTTP route 200; runtime pending |
+
+The HTTP test confirmed that Molab recognizes all six paths and returns each
+notebook title. Interactive execution is not marked as verified yet because
+the browser received `ERR_CONNECTION_RESET` while starting these routes. This
+is distinct from the earlier missing-context error caused by manual import and
+should be retested when the service accepts the session.
+
+This flow creates one link per notebook, all pointing to the same repository
+and branch; it does not create one file browser that switches notebooks inside
+a single URL. A multi-notebook application using
+`marimo.create_asgi_app()` would be a custom deployment, not the usual Molab
+flow.
+
+Without a mirror, the fallback is to upload the files through the File Browser;
+the CSV and modules must be present in the expected tree. A temporary bundle
+can be used for this test, but it must not be committed or replace the
+versioned CSV.
+
+After a new commit is published to GitLab, update the GitHub mirror before
+using the preview. The table must record the source commit/ref, verification
+date, all-cell status, CSV access, dependencies, and output size. A link
+receives “verified” status only after a top-to-bottom run without errors.
 
 ## Local reproduction
 
