@@ -20,7 +20,7 @@ Use a `especificação` issue before implementing shared or high-risk contracts 
 - Keep `tracks_raw`, `tracks_clean`, `tracks`, `track_genres`, and `track_artists` distinct and name the grain in analysis functions and chart titles. Every notebook must consume the shared cleaning stage; do not replicate its rules in cells.
 - Prefer typed Polars over pandas. Keep SQL in readable, testable cells or helper modules.
 - For human analysis, use the v0.1 panel in [docs/feature-roles.en.md](feature-roles.en.md); keep the remaining features available for automated selection and sensitivity analyses.
-- Do not commit database files, generated exports, notebook caches, or large unbounded chart payloads.
+- Commit the HTML snapshots produced by `scripts/render_notebooks.py` under `artifacts/notebooks/html/` when a notebook changes; do not commit exports outside that directory, database files, notebook caches, or large unbounded chart payloads.
 
 ## Chart quality checklist
 
@@ -45,7 +45,8 @@ Run the relevant checks before opening a merge request:
 uv sync
 uv run marimo check notebooks/spotify_analysis.py
 uv run marimo check notebooks/explorations/musical_structure.py
-uv run marimo export html notebooks/spotify_analysis.py -o spotify_analysis.html --no-include-code
+uv run python scripts/render_notebooks.py
+uv run python scripts/render_notebooks.py --check
 uv run pytest
 ```
 

@@ -5,12 +5,12 @@
     {
       "canonical": "README.md",
       "translation": "README.en.md",
-      "canonical_sha256": "14f7b7a8435ac584a4bed7d6138cd2e1249abe1c8adf0dc733e2a29cfab70e64"
+      "canonical_sha256": "6801b7c2d759c6a0a7758e31b1487b0d64fe1a7694b357eee6910c7c52201281"
     },
     {
       "canonical": "docs/contributing.md",
       "translation": "docs/contributing.en.md",
-      "canonical_sha256": "cd9e48ef55fb52c4692feba04668efa664cf6730b2268efed62d47b032392ae7"
+      "canonical_sha256": "217ed777f825f715c0ecff13f4be9a1a7c0400addb9243621d351eb6a2d867a8"
     },
     {
       "canonical": "docs/data-contract.md",
@@ -40,12 +40,17 @@
     {
       "canonical": "docs/development.md",
       "translation": "docs/development.en.md",
-      "canonical_sha256": "1e957665dcaaa8969876ac518f5eb4e54328b2df2dc83ef3b426f9bac86096c6"
+      "canonical_sha256": "8607e95466d3df3bdd4c8caf3003d0b194de92751c63cc015396febc7a09bf53"
     },
     {
       "canonical": "docs/team-next-steps.md",
       "translation": "docs/team-next-steps.en.md",
-      "canonical_sha256": "571a2d35c4fde2f6f0b427b86a43ad2c71677a6831f862996fbaf404a9315864"
+      "canonical_sha256": "45031591893afaaea06fc7db6f08fa2be79afc221de0a3daf91491fbbd34a3e7"
+    },
+    {
+      "canonical": "docs/molab-notebooks.md",
+      "translation": "docs/molab-notebooks.en.md",
+      "canonical_sha256": "26df4eea1434bd3f7710f48948e4fe71710b57fcb820b918fc5f660fa9e0189e"
     },
     {
       "canonical": "docs/categorical-representation.md",

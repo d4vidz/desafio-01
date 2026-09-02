@@ -16,11 +16,14 @@ docs/branching.md                 # branches, commits, revisão e proteção de 
 docs/development.md               # ambiente local, Molab e pareamento com agentes
 docs/ci.md                        # diagnóstico e registro de pipelines
 docs/team-next-steps.md           # ponto de partida e handoff do time
+docs/molab-notebooks.md           # publicação, links e verificação Molab
 notebooks/data_contract_audit.py  # auditoria detalhada do contrato
 notebooks/explorations/           # associações, gênero, estrutura e validação
 notebooks/spotify_analysis.py    # integrador final com evidência curada
+artifacts/notebooks/html/         # snapshots HTML estáticos revisáveis
 tests/                            # testes focados
 pyproject.toml                   # dependências e ferramentas do projeto
+scripts/render_notebooks.py       # renderização determinística dos snapshots
 ```
 
 ## Início rápido
@@ -36,10 +39,17 @@ Para uma execução smoke não interativa e validação do notebook:
 
 ```bash
 uv run marimo check notebooks/spotify_analysis.py
-uv run marimo export html notebooks/spotify_analysis.py -o spotify_analysis.html --no-include-code
+uv run python scripts/render_notebooks.py
+uv run python scripts/render_notebooks.py --check
 uv run python scripts/smoke_notebooks.py
 uv run pytest
 ```
+
+O script de renderização executa os seis notebooks canônicos e salva HTML com
+o código incluído em `artifacts/notebooks/html/`. Esses snapshots são
+versionados para revisão rápida a cada commit que altera notebooks. Não
+versione exports fora dessa pasta, bancos DuckDB, caches ou payloads sem
+limite.
 
 O arquivo de entrada deve estar em `data/raw/spotify_tracks.csv`. O notebook deve falhar com uma mensagem clara se o arquivo não estiver presente; não baixe, sintetize ou substitua a fonte silenciosamente.
 

@@ -11,8 +11,15 @@ def _():
     import sys
     from hashlib import sha256
     from pathlib import Path
+    from zipfile import ZipFile
 
-    root = Path(__file__).resolve().parents[2]
+    root = Path.cwd()
+    bundle_path = root / "spotify_molab_bundle.zip"
+    if not (root / "spotify_data").exists() and bundle_path.exists():
+        with ZipFile(bundle_path) as bundle:
+            bundle.extractall(root)
+    if not (root / "spotify_data").exists():
+        root = Path(__file__).resolve().parents[2]
     if str(root) not in sys.path:
         sys.path.insert(0, str(root))
     import marimo as mo
@@ -22,12 +29,12 @@ def _():
     import statsmodels.api as sm
     from spotify_data import add_semantic_features, bh_fdr, build_data_layer, holm_adjust
 
-    return Path, add_semantic_features, bh_fdr, build_data_layer, go, holm_adjust, mo, np, pl, sha256, sm
+    return Path, add_semantic_features, bh_fdr, build_data_layer, go, holm_adjust, mo, np, pl, root, sha256, sm
 
 
 @app.cell
-def _(Path, build_data_layer, mo):
-    csv_path = Path(__file__).resolve().parents[2] / "data" / "raw" / "spotify_tracks.csv"
+def _(Path, build_data_layer, mo, root):
+    csv_path = root / "data" / "raw" / "spotify_tracks.csv"
     mo.stop(not csv_path.exists(), mo.md(f"CSV não encontrado: `{csv_path}`"))
     layer = build_data_layer(csv_path)
     db = layer.connection

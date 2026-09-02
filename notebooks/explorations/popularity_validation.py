@@ -10,19 +10,27 @@ app = marimo.App(width="full")
 def _():
     import sys
     from pathlib import Path
-    root = Path(__file__).resolve().parents[2]
+    from zipfile import ZipFile
+
+    root = Path.cwd()
+    bundle_path = root / "spotify_molab_bundle.zip"
+    if not (root / "spotify_data").exists() and bundle_path.exists():
+        with ZipFile(bundle_path) as bundle:
+            bundle.extractall(root)
+    if not (root / "spotify_data").exists():
+        root = Path(__file__).resolve().parents[2]
     if str(root) not in sys.path:
         sys.path.insert(0, str(root))
     import marimo as mo
     import polars as pl
     from spotify_data import add_semantic_features, build_data_layer
     from spotify_data.evaluation import evaluate_regression, summarize_metrics
-    return Path, add_semantic_features, build_data_layer, evaluate_regression, mo, pl, summarize_metrics
+    return Path, add_semantic_features, build_data_layer, evaluate_regression, mo, pl, root, summarize_metrics
 
 
 @app.cell
-def _(Path, build_data_layer, mo):
-    csv_path = Path(__file__).resolve().parents[2] / "data" / "raw" / "spotify_tracks.csv"
+def _(Path, build_data_layer, mo, root):
+    csv_path = root / "data" / "raw" / "spotify_tracks.csv"
     mo.stop(not csv_path.exists(), mo.md(f"CSV não encontrado: `{csv_path}`"))
     layer = build_data_layer(csv_path)
     db = layer.connection

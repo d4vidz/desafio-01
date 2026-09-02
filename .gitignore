@@ -27,6 +27,12 @@ outputs/
 *.svg
 *.parquet
 
+# Committed Marimo review snapshots (regenerated with scripts/render_notebooks.py)
+!artifacts/
+!artifacts/notebooks/
+!artifacts/notebooks/html/
+!artifacts/notebooks/html/*.html
+
 # OS/editor files
 .DS_Store
 Thumbs.db

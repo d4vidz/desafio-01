@@ -25,4 +25,4 @@ The categorical-representation protocol is now versioned in `docs/categorical-re
 
 ## Before requesting review
 
-Run the commands in `docs/ci.en.md`, check bounded outputs, and write a conclusion that distinguishes association, contemporaneous prediction, and causality. If CI fails, record the pipeline, SHA, jobs, and first trace; a failure with no job is not evidence of broken code. The headless smoke run executes every notebook through a temporary HTML export and does not version exports.
+Run the commands in `docs/ci.en.md`, regenerate snapshots with `uv run python scripts/render_notebooks.py`, verify `uv run python scripts/render_notebooks.py --check`, inspect bounded outputs, and write a conclusion that distinguishes association, contemporaneous prediction, and causality. If CI fails, record the pipeline, SHA, jobs, and first trace; a failure with no job is not evidence of broken code. The headless smoke run executes every notebook through a temporary HTML export; reviewable snapshots live under `artifacts/notebooks/html/`.

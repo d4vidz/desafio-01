@@ -25,4 +25,4 @@ O protocolo de representação categórica está versionado em `docs/categorical
 
 ## Antes de pedir revisão
 
-Execute os comandos de `docs/ci.md`, confira outputs bounded e escreva uma conclusão que distinga associação, previsão contemporânea e causalidade. Se o CI falhar, registre pipeline, SHA, jobs e primeiro trace; falha sem job não é evidência de código quebrado. O smoke headless executa cada notebook por exportação HTML temporária e não versiona os exports.
+Execute os comandos de `docs/ci.md`, regenere os snapshots com `uv run python scripts/render_notebooks.py`, confira `uv run python scripts/render_notebooks.py --check`, outputs bounded e escreva uma conclusão que distinga associação, previsão contemporânea e causalidade. Se o CI falhar, registre pipeline, SHA, jobs e primeiro trace; falha sem job não é evidência de código quebrado. O smoke headless executa cada notebook por exportação HTML temporária; os snapshots revisáveis ficam em `artifacts/notebooks/html/`.

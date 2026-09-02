@@ -8,9 +8,17 @@ app = marimo.App(width="full")
 def _():
     import sys
     from pathlib import Path
-    _repo_root = Path(__file__).resolve().parents[1]
-    if str(_repo_root) not in sys.path:
-        sys.path.insert(0, str(_repo_root))
+    from zipfile import ZipFile
+
+    repo_root = Path.cwd()
+    bundle_path = repo_root / "spotify_molab_bundle.zip"
+    if not (repo_root / "spotify_data").exists() and bundle_path.exists():
+        with ZipFile(bundle_path) as bundle:
+            bundle.extractall(repo_root)
+    if not (repo_root / "spotify_data").exists():
+        repo_root = Path(__file__).resolve().parents[1]
+    if str(repo_root) not in sys.path:
+        sys.path.insert(0, str(repo_root))
     import marimo as mo
     import numpy as np
     import plotly.graph_objects as go
@@ -29,12 +37,12 @@ def _():
             ParallelCoordinates, Path, ShuffleSplit, StandardScaler,
             build_data_layer, build_duckdb_layer, contract_capsule, calinski_harabasz_score, davies_bouldin_score,
             go, load_tracks_raw, mean_absolute_error, mean_squared_error,
-            missing_identifier_counts, mo, np, pl, r2_score, silhouette_score)
+            missing_identifier_counts, mo, np, pl, r2_score, silhouette_score, repo_root)
 
 
 @app.cell
-def _(Path, build_data_layer, load_tracks_raw, mo):
-    csv_path = Path(__file__).resolve().parents[1] / "data" / "raw" / "spotify_tracks.csv"
+def _(Path, build_data_layer, load_tracks_raw, mo, repo_root):
+    csv_path = repo_root / "data" / "raw" / "spotify_tracks.csv"
     mo.stop(not csv_path.exists(), mo.md(f"CSV não encontrado: `{csv_path}`"))
     tracks_raw = load_tracks_raw(csv_path)
     layer = build_data_layer(csv_path)

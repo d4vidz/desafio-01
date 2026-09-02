@@ -16,11 +16,14 @@ docs/branching.en.md              # branches, commits, review, and main protecti
 docs/development.en.md            # local environment, Molab, and agent pairing
 docs/ci.en.md                     # pipeline diagnosis and incident log
 docs/team-next-steps.en.md        # team starting point and handoff
+docs/molab-notebooks.en.md        # Molab publication, links, and verification
 notebooks/data_contract_audit.py  # only detailed contract audit
 notebooks/explorations/           # associations, genre, structure, validation
 notebooks/spotify_analysis.py    # final integrator with curated evidence
+artifacts/notebooks/html/         # reviewable static HTML snapshots
 tests/                            # focused tests, when added
 pyproject.toml                   # dependencies and project tooling
+scripts/render_notebooks.py       # deterministic snapshot renderer
 ```
 
 ## Quick start
@@ -36,10 +39,16 @@ For a non-interactive smoke run and notebook validation:
 
 ```bash
 uv run marimo check notebooks/spotify_analysis.py
-uv run marimo export html notebooks/spotify_analysis.py -o spotify_analysis.html --no-include-code
+uv run python scripts/render_notebooks.py
+uv run python scripts/render_notebooks.py --check
 uv run python scripts/smoke_notebooks.py
 uv run pytest
 ```
+
+The renderer executes all six canonical notebooks and saves HTML with source
+code included under `artifacts/notebooks/html/`. These snapshots are committed
+for quick review on every commit that changes a notebook. Do not commit
+exports outside this directory, DuckDB files, caches, or unbounded payloads.
 
 The input file is expected at `data/raw/spotify_tracks.csv`. The notebook should fail with a clear missing-file error if it is not present; do not silently download, synthesize, or replace the source data.
 

@@ -20,7 +20,7 @@ Use uma issue de `especificação` antes de implementar contratos compartilhados
 - Mantenha `tracks_raw`, `tracks_clean`, `tracks`, `track_genres` e `track_artists` distintos e nomeie o grain nas funções de análise e nos títulos dos gráficos. Todo notebook deve consumir a limpeza compartilhada; não replique suas regras em células.
 - Prefira Polars tipado a pandas. Mantenha SQL em células ou módulos auxiliares legíveis e testáveis.
 - Para a análise humana, use o painel v0.1 em [docs/feature-roles.md](feature-roles.md); mantenha as demais features disponíveis para seleção automatizada e análises de sensibilidade.
-- Não versione arquivos de banco, exports gerados, caches de notebook ou payloads de gráficos grandes e sem limite.
+- Versione os snapshots HTML produzidos por `scripts/render_notebooks.py` em `artifacts/notebooks/html/` quando um notebook mudar; não versione exports fora dessa pasta, arquivos de banco, caches de notebook ou payloads de gráficos grandes e sem limite.
 
 ## Checklist de qualidade dos gráficos
 
@@ -45,7 +45,8 @@ Execute os checks relevantes antes de abrir um merge request:
 uv sync
 uv run marimo check notebooks/spotify_analysis.py
 uv run marimo check notebooks/explorations/musical_structure.py
-uv run marimo export html notebooks/spotify_analysis.py -o spotify_analysis.html --no-include-code
+uv run python scripts/render_notebooks.py
+uv run python scripts/render_notebooks.py --check
 uv run pytest
 ```
 

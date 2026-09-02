@@ -11,4 +11,5 @@ governance:
     - python scripts/check_translation_pairs.py
     - uv run pytest -q
     - uv run marimo check notebooks/data_contract_audit.py notebooks/spotify_analysis.py notebooks/explorations/popularity_associations.py notebooks/explorations/genre_representations.py notebooks/explorations/musical_structure.py notebooks/explorations/popularity_validation.py
+    - uv run python scripts/render_notebooks.py --check
     - uv run python scripts/smoke_notebooks.py
