@@ -88,6 +88,11 @@ IMPUTATION_POLICY = (
     "exclude null identifiers for relational edges but must not invent feature values."
 )
 
+CLEAN_COLUMNS = tuple(column for column in RAW_COLUMNS if column != "source_row_id")
+CLEAN_SCHEMA: dict[str, pl.DataType] = {
+    column: dtype for column, dtype in RAW_SCHEMA.items() if column != "source_row_id"
+}
+
 
 def load_tracks_raw(path: str | Path) -> pl.DataFrame:
     """Load the unchanged source with a declared schema.
@@ -133,6 +138,44 @@ def missing_identifier_counts(frame: pl.DataFrame) -> pl.DataFrame:
     )
 
 
+def clean_source_rows(frame: pl.DataFrame) -> pl.DataFrame:
+    """Apply the audited, row-grain cleaning policy without mutating the source.
+
+    The policy reproduces the reviewed cleaning notebook linked from the data
+    contract: drop the single row missing artist/album/track labels, remove the
+    exported source index from the analytical relation, remove exact duplicate
+    rows, and trim outer whitespace from artist and track labels. Repeated
+    ``track_id`` values remain because genre is explicitly many-to-many.
+    """
+
+    validate_source_schema(frame)
+    return (
+        frame.filter(
+            pl.all_horizontal(
+                pl.col(column).is_not_null()
+                for column in ("artists", "album_name", "track_name")
+            )
+        )
+        .drop("source_row_id")
+        .unique(maintain_order=True)
+        .with_columns(
+            pl.col("artists").str.strip_chars(),
+            pl.col("track_name").str.strip_chars(),
+        )
+        .unique(maintain_order=True)
+        .select(CLEAN_COLUMNS)
+    )
+
+
+def validate_clean_schema(frame: pl.DataFrame) -> None:
+    """Raise ``ValueError`` unless a frame matches the cleaned row contract."""
+
+    if tuple(frame.columns) != CLEAN_COLUMNS:
+        raise ValueError(f"Unexpected cleaned columns: {frame.columns!r}")
+    if frame.schema != CLEAN_SCHEMA:
+        raise ValueError(f"Unexpected cleaned schema: {frame.schema!r}")
+
+
 def validate_repeated_track_fields(frame: pl.DataFrame) -> pl.DataFrame:
     """Return repeated-track conflicts excluding popularity and genre.
 
@@ -141,7 +184,10 @@ def validate_repeated_track_fields(frame: pl.DataFrame) -> pl.DataFrame:
     between contradictory source rows.
     """
 
-    validate_source_schema(frame)
+    if tuple(frame.columns) == RAW_COLUMNS:
+        validate_source_schema(frame)
+    else:
+        validate_clean_schema(frame)
     conflicts: list[pl.DataFrame] = []
     for field in CANONICAL_TRACK_FIELDS:
         field_conflicts = (
@@ -188,7 +234,10 @@ def parse_track_artists(frame: pl.DataFrame) -> pl.DataFrame:
     Artist labels are Unicode-normalized with NFKC after trimming.
     """
 
-    validate_source_schema(frame)
+    if tuple(frame.columns) == RAW_COLUMNS:
+        validate_source_schema(frame)
+    else:
+        validate_clean_schema(frame)
     parts = pl.col("artists").str.split(";")
     return (
         frame.select(["track_id", "artists"])
@@ -218,7 +267,7 @@ def build_duckdb_layer(
     path: str | Path,
     connection: duckdb.DuckDBPyConnection | None = None,
 ) -> duckdb.DuckDBPyConnection:
-    """Rebuild temporary ``tracks_raw``, ``tracks``, and edge tables.
+    """Rebuild temporary raw, clean, canonical-track, and edge tables.
 
     A supplied connection is reused; otherwise an explicit in-memory DuckDB
     connection is created. The source is read afresh on every invocation.
@@ -233,20 +282,25 @@ def build_duckdb_layer(
             f"resolve the source or policy before canonicalization: {examples}"
         )
     connection = connection or duckdb.connect(":memory:")
+    clean_frame = clean_source_rows(frame)
     connection.register("_raw_source_frame", frame)
+    connection.register("_clean_source_frame", clean_frame)
     connection.execute("CREATE OR REPLACE TEMP TABLE tracks_raw AS SELECT * FROM _raw_source_frame")
+    connection.execute(
+        "CREATE OR REPLACE TEMP TABLE tracks_clean AS SELECT * FROM _clean_source_frame"
+    )
     connection.execute(
         """
         CREATE OR REPLACE TEMP TABLE track_genres AS
         SELECT DISTINCT track_id, TRIM(track_genre) AS track_genre
-        FROM tracks_raw
+        FROM tracks_clean
         WHERE track_id IS NOT NULL
           AND track_genre IS NOT NULL
           AND TRIM(track_genre) <> ''
         """
     )
 
-    artist_frame = parse_track_artists(frame)
+    artist_frame = parse_track_artists(clean_frame)
     connection.register("_track_artists_frame", artist_frame)
     connection.execute(
         "CREATE OR REPLACE TEMP TABLE track_artists AS SELECT * FROM _track_artists_frame"
@@ -282,7 +336,7 @@ def build_duckdb_layer(
             MIN(time_signature) AS time_signature,
             MIN(track_genre) AS representative_track_genre,
             COUNT(DISTINCT track_genre) AS genre_count
-        FROM tracks_raw
+        FROM tracks_clean
         WHERE track_id IS NOT NULL
         GROUP BY track_id
         """

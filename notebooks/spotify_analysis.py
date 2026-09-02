@@ -38,10 +38,11 @@ def _(Path, build_duckdb_layer, load_tracks_raw, mo):
     mo.stop(not csv_path.exists(), mo.md(f"CSV não encontrado: `{csv_path}`"))
     tracks_raw = load_tracks_raw(csv_path)
     db = build_duckdb_layer(csv_path)
+    tracks_clean = db.execute("SELECT * FROM tracks_clean").pl()
     tracks = db.execute("SELECT * FROM tracks ORDER BY track_id").pl()
     track_genres = db.execute("SELECT * FROM track_genres ORDER BY track_id, track_genre").pl()
     track_artists = db.execute("SELECT * FROM track_artists ORDER BY track_id, artist_position").pl()
-    return csv_path, db, track_artists, track_genres, tracks, tracks_raw
+    return csv_path, db, track_artists, track_genres, tracks, tracks_clean, tracks_raw
 
 
 @app.cell
@@ -56,19 +57,19 @@ def _(mo):
 
 
 @app.cell
-def _(missing_identifier_counts, pl, track_artists, track_genres, tracks, tracks_raw):
+def _(missing_identifier_counts, pl, track_artists, track_genres, tracks, tracks_clean, tracks_raw):
     contract = pl.DataFrame({
-        "relação": ["tracks_raw", "tracks", "track_genres", "track_artists"],
-        "linhas": [tracks_raw.height, tracks.height, track_genres.height, track_artists.height],
-        "grain": ["linha do CSV", "track_id", "track_id × gênero", "track_id × artista"],
+        "relação": ["tracks_raw", "tracks_clean", "tracks", "track_genres", "track_artists"],
+        "linhas": [tracks_raw.height, tracks_clean.height, tracks.height, track_genres.height, track_artists.height],
+        "grain": ["linha física do CSV", "linha limpa", "track_id", "track_id × gênero", "track_id × artista"],
     })
     missing = missing_identifier_counts(tracks_raw).filter(pl.col("missing_count") > 0)
     audit = pl.DataFrame({
-        "métrica": ["linhas brutas", "faixas", "track_id repetidos", "duplicatas sem gênero",
+        "métrica": ["linhas brutas", "linhas limpas", "faixas", "track_id repetidos", "duplicatas físicas removidas",
                     "faixas multigênero", "conflitos de popularidade"],
-        "valor": [tracks_raw.height, tracks.height,
+        "valor": [tracks_raw.height, tracks_clean.height, tracks.height,
                   tracks_raw.group_by("track_id").len().filter(pl.col("len") > 1).height,
-                  tracks_raw.drop("track_genre").is_duplicated().sum(),
+                  tracks_raw.height - 1 - tracks_clean.height,
                   tracks.filter(pl.col("genre_count") > 1).height,
                   tracks.filter(pl.col("popularity_conflict")).height],
     })
@@ -85,7 +86,7 @@ def _(missing_identifier_counts, pl, track_artists, track_genres, tracks, tracks
 def _(audit, contract, missing, mo, ranges):
     mo.vstack([mo.md("## 1. Contrato e qualidade"),
                mo.hstack([mo.ui.table(contract), mo.ui.table(audit)], widths="equal"),
-               mo.md("Há **zero missingness numérico**: imputação inventaria um experimento sem objeto. Identificadores ausentes ficam visíveis. Popularidade divergente é consolidada por mediana, preservando mínimo, máximo, contagem, amplitude e flag."),
+               mo.md("`tracks_raw` preserva as 114.000 linhas para auditoria. `tracks_clean` reproduz a limpeza revisada: remove a linha sem identificação textual, o índice exportado e 450 duplicatas exatas, além de aparar espaços externos. Há **zero missingness numérico**: imputação inventaria um experimento sem objeto. Popularidade divergente é consolidada por mediana, preservando mínimo, máximo, contagem, amplitude e flag."),
                mo.hstack([mo.ui.table(missing), mo.ui.table(ranges)], widths="equal")])
     return
 

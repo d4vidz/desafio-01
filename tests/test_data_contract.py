@@ -5,10 +5,12 @@ import duckdb
 import polars as pl
 
 from spotify_data import (
+    CLEAN_COLUMNS,
     IMPUTATION_POLICY,
     RAW_COLUMNS,
     RAW_SCHEMA,
     build_duckdb_layer,
+    clean_source_rows,
     load_tracks_raw,
     missing_identifier_counts,
     parse_track_artists,
@@ -62,10 +64,21 @@ def test_loader_uses_explicit_schema_and_preserves_unnamed_source_index():
 def test_dual_grain_tables_and_counts_are_reconstructible():
     connection = build_duckdb_layer(CSV_PATH)
     assert connection.execute("SELECT COUNT(*) FROM tracks_raw").fetchone()[0] == 114_000
-    assert connection.execute("SELECT COUNT(*) FROM tracks").fetchone()[0] == 89_741
-    assert connection.execute("SELECT COUNT(*) FROM track_genres").fetchone()[0] == 113_550
+    assert connection.execute("SELECT COUNT(*) FROM tracks_clean").fetchone()[0] == 113_549
+    assert connection.execute("SELECT COUNT(*) FROM tracks").fetchone()[0] == 89_740
+    assert connection.execute("SELECT COUNT(*) FROM track_genres").fetchone()[0] == 113_549
     assert connection.execute("SELECT COUNT(*) FROM track_artists").fetchone()[0] > 0
     assert connection.execute("SELECT COUNT(*) FROM tracks WHERE track_id IS NULL").fetchone()[0] == 0
+
+
+def test_clean_source_rows_reproduces_audited_cleaning_policy():
+    clean = clean_source_rows(load_tracks_raw(CSV_PATH))
+    assert tuple(clean.columns) == CLEAN_COLUMNS
+    assert clean.shape == (113_549, 20)
+    assert clean.null_count().sum_horizontal().item() == 0
+    assert clean.is_duplicated().sum() == 0
+    assert clean.filter(pl.col("artists") != pl.col("artists").str.strip_chars()).is_empty()
+    assert clean.filter(pl.col("track_name") != pl.col("track_name").str.strip_chars()).is_empty()
 
 
 def test_tracks_use_median_popularity_and_expose_conflict_fields():

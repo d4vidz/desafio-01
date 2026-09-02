@@ -29,6 +29,7 @@ restritas à sessão e reconstrua essas tabelas após cada reinício. Arquivos
 | Relação | Grão | Uso |
 | --- | --- | --- |
 | `tracks_raw` | uma linha da fonte | auditar duplicatas, nulos, valores inválidos e fidelidade da fonte |
+| `tracks_clean` | uma linha limpa da fonte, sem o índice exportado | entrada comum para todas as relações analíticas |
 | `tracks` | uma linha por `track_id` | distribuições por faixa, PCA, clustering e popularidade |
 | `track_genres` | uma linha por `track_id` × gênero | comparações, sobreposição e visões derivadas de grafos |
 | `track_artists` | uma linha por `track_id` × artista | rede artista–gênero e agregações |
@@ -38,6 +39,15 @@ aparecer em mais de uma relação com gênero. Nunca trate silenciosamente as
 linhas da fonte como faixas independentes. Identificadores nulos são
 reportados; relações filhas que dependem deles excluem essas linhas sem
 inventar chaves.
+
+`tracks_clean` reproduz a limpeza auditada no notebook [Spotify Data
+Cleaning](https://molab.marimo.io/notebooks/nb_FP1VJkrCoXJwRVExDxZibv):
+remove a única linha com `artists`, `album_name` e `track_name` ausentes,
+descarta `source_row_id` da relação analítica, remove 450 cópias exatamente
+duplicadas desconsiderando esse índice e apara espaços externos de `artists`
+e `track_name`. A fonte permanece intacta em `tracks_raw`. O resultado tem
+113.549 linhas e 20 colunas. Não persista um segundo CSV limpo; todos os
+notebooks devem reconstruir esta relação pelo mesmo módulo.
 
 Para cada `track_id`, `tracks` usa a mediana da popularidade e preserva
 `popularity_min`, `popularity_max`, `popularity_count`,
@@ -63,7 +73,7 @@ No mínimo, reporte:
 - linhas exatamente duplicadas e contagem de `track_id` repetidos;
 - intervalos numéricos esperados e candidatos a sentinel, incluindo durações ou tempos iguais a zero;
 - valores numéricos não finitos e falhas de parsing;
-- mudanças de cardinalidade de `tracks_raw` para `tracks` e `track_genres`;
+- mudanças de cardinalidade de `tracks_raw` para `tracks_clean`, `tracks` e `track_genres`;
 - gêneros esparsos e quantidade de relações com múltiplos gêneros.
 
 Não há imputation na fonte nem nas tabelas canônicas. `tracks_raw` preserva
