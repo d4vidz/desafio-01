@@ -23,26 +23,28 @@ def _():
                                  silhouette_score)
     from sklearn.model_selection import GroupShuffleSplit, ShuffleSplit
     from sklearn.preprocessing import StandardScaler
-    from wigglystuff import ParallelCoordinates, Treemap
-    from spotify_data import build_duckdb_layer, load_tracks_raw, missing_identifier_counts
+    from wigglystuff import ParallelCoordinates
+    from spotify_data import build_data_layer, build_duckdb_layer, contract_capsule, load_tracks_raw, missing_identifier_counts
     return (GroupShuffleSplit, HistGradientBoostingRegressor, KMeans, PCA,
-            ParallelCoordinates, Path, ShuffleSplit, StandardScaler, Treemap,
-            build_duckdb_layer, calinski_harabasz_score, davies_bouldin_score,
+            ParallelCoordinates, Path, ShuffleSplit, StandardScaler,
+            build_data_layer, build_duckdb_layer, contract_capsule, calinski_harabasz_score, davies_bouldin_score,
             go, load_tracks_raw, mean_absolute_error, mean_squared_error,
             missing_identifier_counts, mo, np, pl, r2_score, silhouette_score)
 
 
 @app.cell
-def _(Path, build_duckdb_layer, load_tracks_raw, mo):
+def _(Path, build_data_layer, load_tracks_raw, mo):
     csv_path = Path(__file__).resolve().parents[1] / "data" / "raw" / "spotify_tracks.csv"
     mo.stop(not csv_path.exists(), mo.md(f"CSV não encontrado: `{csv_path}`"))
     tracks_raw = load_tracks_raw(csv_path)
-    db = build_duckdb_layer(csv_path)
+    layer = build_data_layer(csv_path)
+    db = layer.connection
+    report = layer.report
     tracks_clean = db.execute("SELECT * FROM tracks_clean").pl()
     tracks = db.execute("SELECT * FROM tracks ORDER BY track_id").pl()
     track_genres = db.execute("SELECT * FROM track_genres ORDER BY track_id, track_genre").pl()
     track_artists = db.execute("SELECT * FROM track_artists ORDER BY track_id, artist_position").pl()
-    return csv_path, db, track_artists, track_genres, tracks, tracks_clean, tracks_raw
+    return csv_path, db, layer, report, track_artists, track_genres, tracks, tracks_clean, tracks_raw
 
 
 @app.cell
@@ -57,7 +59,7 @@ def _(mo):
 
 
 @app.cell
-def _(missing_identifier_counts, pl, track_artists, track_genres, tracks, tracks_clean, tracks_raw):
+def _(contract_capsule, missing_identifier_counts, pl, report, track_artists, track_genres, tracks, tracks_clean, tracks_raw):
     contract = pl.DataFrame({
         "relação": ["tracks_raw", "tracks_clean", "tracks", "track_genres", "track_artists"],
         "linhas": [tracks_raw.height, tracks_clean.height, tracks.height, track_genres.height, track_artists.height],
@@ -79,12 +81,14 @@ def _(missing_identifier_counts, pl, track_artists, track_genres, tracks, tracks
                    tracks_raw.filter(pl.col("duration_ms") <= 0).height,
                    tracks_raw.filter(pl.col("tempo") <= 0).height],
     })
-    return audit, contract, missing, ranges
+    capsule = pl.DataFrame([contract_capsule(report)])
+    return audit, capsule, contract, missing, ranges
 
 
 @app.cell
-def _(audit, contract, missing, mo, ranges):
+def _(audit, capsule, contract, missing, mo, ranges):
     mo.vstack([mo.md("## 1. Contrato e qualidade"),
+               mo.ui.table(capsule),
                mo.hstack([mo.ui.table(contract), mo.ui.table(audit)], widths="equal"),
                mo.md("`tracks_raw` preserva as 114.000 linhas para auditoria. `tracks_clean` reproduz a limpeza revisada: remove a linha sem identificação textual, o índice exportado e 450 duplicatas exatas, além de aparar espaços externos. Há **zero missingness numérico**: imputação inventaria um experimento sem objeto. Popularidade divergente é consolidada por mediana, preservando mínimo, máximo, contagem, amplitude e flag."),
                mo.hstack([mo.ui.table(missing), mo.ui.table(ranges)], widths="equal")])
@@ -179,7 +183,7 @@ def _(ParallelCoordinates, mo, pl, tracks):
 def _(KMeans, PCA, StandardScaler, calinski_harabasz_score, davies_bouldin_score,
       features, pl, silhouette_score, tracks):
     psrc = tracks.select(["track_id", "popularity", *features]).drop_nulls()
-    psrc = psrc.sample(n=min(20_000, psrc.height), seed=2026)
+    psrc = psrc.sample(n=min(6_000, psrc.height), seed=2026)
     scaled = StandardScaler().fit_transform(psrc.select(features).to_numpy())
     pca = PCA(n_components=3, random_state=2026)
     pcs = pca.fit_transform(scaled)
@@ -200,37 +204,56 @@ def _(KMeans, PCA, StandardScaler, calinski_harabasz_score, davies_bouldin_score
 
 @app.cell
 def _(best_k, cluster_metrics, go, mo, pframe, variance):
+    fig_pca_2d = go.Figure(go.Scattergl(x=pframe["PC1"].to_numpy(), y=pframe["PC2"].to_numpy(),
+        mode="markers", marker={"size": 5, "opacity": .45,
+        "color": pframe["PC3"].to_numpy(), "colorscale": "Viridis", "colorbar": {"title": "PC3"}}))
+    fig_pca_2d.update_layout(title="PCA 2D — visão primária", height=480, template="plotly_white")
     fig_pca = go.Figure(go.Scatter3d(x=pframe["PC1"].to_numpy(), y=pframe["PC2"].to_numpy(),
         z=pframe["PC3"].to_numpy(), mode="markers", marker={"size": 2.5, "opacity": .4,
         "color": pframe["cluster"].to_numpy(), "colorscale": "Turbo"}))
-    fig_pca.update_layout(title=f"PCA 3D + KMeans exploratório (k={best_k})", height=600)
+    fig_pca.update_layout(title=f"PCA 3D + KMeans opcional (k={best_k})", height=560)
     mo.vstack([mo.md("## 5. PCA e clustering"),
-               mo.hstack([mo.ui.table(variance), mo.ui.table(cluster_metrics)], widths="equal"), fig_pca,
-               mo.md("k maximiza silhouette entre 2–6, contrastado por Davies–Bouldin e Calinski–Harabasz. Clusters descrevem geometria; não são segmentos de ouvintes.")])
+               mo.hstack([mo.ui.table(variance), mo.ui.table(cluster_metrics)], widths="equal"), fig_pca_2d, fig_pca,
+               mo.md("A visão 2D é primária e a 3D é opcional/bounded. k maximiza silhouette entre 2–6, contrastado por Davies–Bouldin e Calinski–Harabasz. Clusters descrevem geometria; não são segmentos de ouvintes.")])
     return
 
 
 @app.cell
-def _(Treemap, db, mo):
+def _(db, go, mo):
     leaves = db.execute("""
-      WITH g AS (SELECT track_genre, dense_rank() OVER (ORDER BY count(DISTINCT track_id) DESC) rg
-        FROM track_genres GROUP BY 1),
-      a AS (SELECT tg.track_genre, ta.artist, dense_rank() OVER
-        (PARTITION BY tg.track_genre ORDER BY count(DISTINCT tg.track_id) DESC) ra
-        FROM track_genres tg JOIN track_artists ta USING(track_id) JOIN g USING(track_genre)
-        WHERE rg<=5 GROUP BY 1,2),
-      x AS (SELECT tg.track_genre, ta.artist, t.track_name, t.track_id, t.popularity,
-        row_number() OVER (PARTITION BY tg.track_genre,ta.artist ORDER BY t.popularity DESC,t.track_id) rt
-        FROM track_genres tg JOIN track_artists ta USING(track_id) JOIN tracks t USING(track_id)
-        JOIN a ON a.track_genre=tg.track_genre AND a.artist=ta.artist WHERE a.ra<=6)
-      SELECT * FROM x WHERE rt<=8 ORDER BY 1,2,5 DESC""").pl()
-    paths = {f"{r['track_genre']} › {r['artist']} › {r['track_name']} [{r['track_id'][:6]}]":
-             max(float(r["popularity"]), 1) for r in leaves.iter_rows(named=True)}
-    tree = mo.ui.anywidget(Treemap.from_paths(paths, sep=" › ", root_name="catálogo selecionado",
-                                              width="100%", height=560, max_depth=3))
-    mo.vstack([mo.md("## 6. Treemap: gênero → artista → faixa"), tree,
-               mo.md("Top 5 gêneros, 6 artistas/gênero e 8 faixas/artista. Área = popularidade (mínimo visual 1); cor = ramo hierárquico. A mesma faixa pode pertencer a múltiplos gêneros.")])
-    return
+      WITH genre_counts AS (SELECT track_id, count(DISTINCT track_genre) k_genre FROM track_genres GROUP BY 1),
+      artist_counts AS (SELECT track_id, count(DISTINCT artist) k_artist FROM track_artists GROUP BY 1),
+      top_genres AS (SELECT track_genre FROM track_genres GROUP BY 1 ORDER BY count(DISTINCT track_id) DESC LIMIT 5),
+      ranked_artists AS (
+        SELECT tg.track_genre, ta.artist,
+          row_number() OVER (PARTITION BY tg.track_genre ORDER BY count(DISTINCT tg.track_id) DESC, ta.artist) artist_rank
+        FROM track_genres tg JOIN top_genres g USING(track_genre) JOIN track_artists ta USING(track_id)
+        GROUP BY 1,2
+      ), ranked_tracks AS (
+        SELECT tg.track_genre, ta.artist, t.track_name, t.track_id, t.popularity,
+          1.0/(gc.k_genre*ac.k_artist) AS area,
+          row_number() OVER (PARTITION BY tg.track_genre,ta.artist ORDER BY t.popularity DESC,t.track_id) track_rank
+        FROM track_genres tg JOIN ranked_artists ra USING(track_genre) JOIN track_artists ta USING(track_id)
+        JOIN tracks t USING(track_id) JOIN genre_counts gc USING(track_id) JOIN artist_counts ac USING(track_id)
+        WHERE ra.artist_rank <= 6 AND ta.artist=ra.artist
+      ) SELECT * FROM ranked_tracks WHERE track_rank <= 8
+      ORDER BY track_genre, artist, popularity DESC
+    """).pl()
+    tree_nodes = {"root": {"label": "catálogo selecionado", "parent": "", "value": float(leaves["area"].sum()), "color": 0.0}}
+    for row in leaves.iter_rows(named=True):
+        genre_id = f"g:{row['track_genre']}"
+        artist_id = f"a:{row['track_genre']}|{row['artist']}"
+        track_id = f"t:{row['track_genre']}|{row['artist']}|{row['track_id']}"
+        tree_nodes.setdefault(genre_id, {"label": row["track_genre"], "parent": "root", "value": 0.0, "color": 0.0})
+        tree_nodes.setdefault(artist_id, {"label": row["artist"], "parent": genre_id, "value": 0.0, "color": 0.0})
+        tree_nodes[genre_id]["value"] += row["area"]
+        tree_nodes[artist_id]["value"] += row["area"]
+        tree_nodes[track_id] = {"label": row["track_name"][:42], "parent": artist_id, "value": row["area"], "color": row["popularity"]}
+    tree = go.Figure(go.Treemap(ids=list(tree_nodes), labels=[x["label"] for x in tree_nodes.values()], parents=[x["parent"] for x in tree_nodes.values()], values=[x["value"] for x in tree_nodes.values()], branchvalues="total", marker={"colors": [x["color"] for x in tree_nodes.values()], "colorscale": "Viridis", "colorbar": {"title": "popularity"}}))
+    tree.update_layout(title="Treemap: gênero → artista → faixa", height=560, template="plotly_white")
+    mo.vstack([mo.md("## 6. Treemap conectado e bounded"), tree,
+               mo.md("Top 5 gêneros, 6 artistas/gênero e 8 faixas/artista. Área = contribuição aditiva `1/(n gêneros × n artistas)`; cor da folha = popularity observada. A visualização não trata gênero como árvore taxonômica nem usa popularity como área.")])
+    return (tree,)
 
 
 @app.cell
