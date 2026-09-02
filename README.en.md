@@ -10,12 +10,15 @@ The project is question-led: charts and models should answer a documented questi
 data/raw/spotify_tracks.csv       # input CSV, added later
 docs/data-contract.en.md          # source, grain, schema, and quality rules
 docs/feature-roles.en.md          # v0.1 feature roles and evidence protocol
+docs/categorical-representation.en.md # multi-hot, PPMI/SVD, and OOV protocol
 docs/contributing.en.md           # issue, chart, and merge-request workflow
 docs/branching.en.md              # branches, commits, review, and main protection
 docs/development.en.md            # local environment, Molab, and agent pairing
 docs/ci.en.md                     # pipeline diagnosis and incident log
 docs/team-next-steps.en.md        # team starting point and handoff
-notebooks/                        # Marimo notebooks (.py), when added
+notebooks/data_contract_audit.py  # only detailed contract audit
+notebooks/explorations/           # associations, genre, structure, validation
+notebooks/spotify_analysis.py    # final integrator with curated evidence
 tests/                            # focused tests, when added
 pyproject.toml                   # dependencies and project tooling
 ```
@@ -34,6 +37,7 @@ For a non-interactive smoke run and notebook validation:
 ```bash
 uv run marimo check notebooks/spotify_analysis.py
 uv run marimo export html notebooks/spotify_analysis.py -o spotify_analysis.html --no-include-code
+uv run python scripts/smoke_notebooks.py
 uv run pytest
 ```
 

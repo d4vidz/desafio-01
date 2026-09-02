@@ -5,7 +5,7 @@
     {
       "canonical": "README.md",
       "translation": "README.en.md",
-      "canonical_sha256": "94a2df849c1da975c30384fe2ccd327e4932fcce87983b5d9bc0eaf7355bd9e6"
+      "canonical_sha256": "14f7b7a8435ac584a4bed7d6138cd2e1249abe1c8adf0dc733e2a29cfab70e64"
     },
     {
       "canonical": "docs/contributing.md",
@@ -40,12 +40,17 @@
     {
       "canonical": "docs/development.md",
       "translation": "docs/development.en.md",
-      "canonical_sha256": "31d5a76db3ea853e86f86d5c172a539494ba7e16682fbbcbc0aa9e5b25470a58"
+      "canonical_sha256": "1e957665dcaaa8969876ac518f5eb4e54328b2df2dc83ef3b426f9bac86096c6"
     },
     {
       "canonical": "docs/team-next-steps.md",
       "translation": "docs/team-next-steps.en.md",
-      "canonical_sha256": "ec51fd9ca80fcf44fe667bac0237471c36c6c8b89f49bfed6456be7c6ad1c2ed"
+      "canonical_sha256": "571a2d35c4fde2f6f0b427b86a43ad2c71677a6831f862996fbaf404a9315864"
+    },
+    {
+      "canonical": "docs/categorical-representation.md",
+      "translation": "docs/categorical-representation.en.md",
+      "canonical_sha256": "a63498f51df1dd56011bd8376c7437266726aac05f7dd7cc63284ff8fbdadf03"
     }
   ]
 }

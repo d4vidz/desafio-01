@@ -11,6 +11,14 @@ uv run marimo edit --no-token
 
 O primeiro comando reproduz as versões travadas. O segundo abre a home do Marimo no navegador, de onde qualquer notebook do repositório pode ser aberto. O servidor deve escutar apenas em localhost; `--no-token` não deve ser usado em uma interface exposta à rede.
 
+Para iniciar a mesma home/editor compartilhada por todos os notebooks do repositório:
+
+```powershell
+uv run python scripts/start_marimo.py
+```
+
+O comando aceita um caminho opcional, por exemplo `uv run python scripts/start_marimo.py notebooks/spotify_analysis.py`.
+
 Para abrir diretamente um notebook:
 
 ```powershell
@@ -30,7 +38,8 @@ O desenvolvimento principal continua local porque oferece acesso estável ao CSV
 ```powershell
 uv run python scripts/check_translation_pairs.py
 uv run pytest -q
-uv run marimo check notebooks/spotify_analysis.py notebooks/explorations/popularity_baselines.py notebooks/explorations/musical_structure.py
+uv run marimo check notebooks/data_contract_audit.py notebooks/spotify_analysis.py notebooks/explorations/popularity_associations.py notebooks/explorations/genre_representations.py notebooks/explorations/musical_structure.py notebooks/explorations/popularity_validation.py
+uv run python scripts/smoke_notebooks.py
 ```
 
 Registre no merge request o sistema operacional quando uma falha for específica de ambiente. Nunca versione `.venv`, caches Marimo, exports HTML ou bancos DuckDB.

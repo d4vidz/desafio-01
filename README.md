@@ -10,12 +10,15 @@ O projeto é orientado por perguntas: gráficos e modelos devem responder a uma 
 data/raw/spotify_tracks.csv       # CSV de entrada
 docs/data-contract.md             # fonte, grain, schema e regras de qualidade
 docs/feature-roles.md             # papéis v0.1 das features e protocolo de evidência
+docs/categorical-representation.md # multi-hot, PPMI/SVD e protocolo de OOV
 docs/contributing.md              # fluxo de issues, gráficos e merge requests
 docs/branching.md                 # branches, commits, revisão e proteção de main
 docs/development.md               # ambiente local, Molab e pareamento com agentes
 docs/ci.md                        # diagnóstico e registro de pipelines
 docs/team-next-steps.md           # ponto de partida e handoff do time
-notebooks/                        # notebooks Marimo (.py)
+notebooks/data_contract_audit.py  # auditoria detalhada do contrato
+notebooks/explorations/           # associações, gênero, estrutura e validação
+notebooks/spotify_analysis.py    # integrador final com evidência curada
 tests/                            # testes focados
 pyproject.toml                   # dependências e ferramentas do projeto
 ```
@@ -34,6 +37,7 @@ Para uma execução smoke não interativa e validação do notebook:
 ```bash
 uv run marimo check notebooks/spotify_analysis.py
 uv run marimo export html notebooks/spotify_analysis.py -o spotify_analysis.html --no-include-code
+uv run python scripts/smoke_notebooks.py
 uv run pytest
 ```
 
