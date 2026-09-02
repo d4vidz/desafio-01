@@ -12,6 +12,9 @@ docs/data-contract.md             # fonte, grain, schema e regras de qualidade
 docs/feature-roles.md             # papéis v0.1 das features e protocolo de evidência
 docs/contributing.md              # fluxo de issues, gráficos e merge requests
 docs/branching.md                 # branches, commits, revisão e proteção de main
+docs/development.md               # ambiente local, Molab e pareamento com agentes
+docs/ci.md                        # diagnóstico e registro de pipelines
+docs/team-next-steps.md           # ponto de partida e handoff do time
 notebooks/                        # notebooks Marimo (.py)
 tests/                            # testes focados
 pyproject.toml                   # dependências e ferramentas do projeto
@@ -40,9 +43,10 @@ O arquivo de entrada deve estar em `data/raw/spotify_tracks.csv`. O notebook dev
 
 Cada runtime cria uma conexão DuckDB em memória e reconstrói suas tabelas a partir do CSV bruto. DuckDB é uma camada efêmera de consulta: não crie, versiona, faça cache nem dependa de arquivos `.duckdb`/`.db`. Use DuckDB para scans, joins, deduplicação, window functions e SQL agrupado; retorne resultados bounded para o trabalho tipado de features e gráficos em Polars.
 
-A análise usa três grains explícitos:
+A análise usa relações com quatro grains explícitos:
 
 - `tracks_raw`: uma linha por linha do CSV de origem; duplicatas são mantidas para auditoria.
+- `tracks_clean`: uma linha limpa da fonte, sem o índice exportado, usada como entrada compartilhada.
 - `tracks`: uma linha canônica por `track_id`, usada para features por faixa, PCA, clustering e resumos de popularidade.
 - `track_genres`: uma linha por relação faixa–gênero, usada para comparações por gênero e visões derivadas de grafos.
 
@@ -58,6 +62,7 @@ Todo gráfico deve identificar sua pergunta, unidade de análise, agregação e 
 Comece pelas guide questions existentes no GitLab e abra uma issue focada para a análise ou entrega de engenharia concreta. Vincule a issue à pergunta, ao grain, ao método, ao artifact esperado, aos caveats e à definition of done. Mantenha claims exploratórios descritivos, salvo quando um target validado e uma avaliação held-out sustentarem um claim preditivo. O fluxo completo está em [docs/contributing.md](docs/contributing.md).
 
 As convenções de Git estão em [docs/branching.md](docs/branching.md).
+O ambiente e o uso local/Molab estão em [docs/development.md](docs/development.md); o handoff operacional do time está em [docs/team-next-steps.md](docs/team-next-steps.md).
 
 ## Escopo atual e próximos caminhos
 

@@ -17,7 +17,7 @@ Use a `especificação` issue before implementing shared or high-risk contracts 
 - Write Marimo notebooks as pure Python files, with small dependency-driven cells and a meaningful final expression for each rendered result.
 - Do not mutate objects across cells; create new Polars frames or result objects.
 - Rebuild the in-memory DuckDB layer from `data/raw/spotify_tracks.csv` on every runtime start.
-- Keep `tracks_raw`, `tracks`, and `track_genres` distinct and name the grain in analysis functions and chart titles.
+- Keep `tracks_raw`, `tracks_clean`, `tracks`, `track_genres`, and `track_artists` distinct and name the grain in analysis functions and chart titles. Every notebook must consume the shared cleaning stage; do not replicate its rules in cells.
 - Prefer typed Polars over pandas. Keep SQL in readable, testable cells or helper modules.
 - For human analysis, use the v0.1 panel in [docs/feature-roles.en.md](feature-roles.en.md); keep the remaining features available for automated selection and sensitivity analyses.
 - Do not commit database files, generated exports, notebook caches, or large unbounded chart payloads.
@@ -50,3 +50,5 @@ uv run pytest
 ```
 
 The merge request should summarize the question answered, data grain, changed outputs, validation commands, and remaining uncertainty. It should link the GitLab issue and state whether the work belongs to Foundation and contracts, Exploration/experiments and evidence selection, or Validated analysis/final narrative. Close the issue only when the code is reproducible, the output is reviewed, and the documented definition of done is satisfied.
+
+For environment setup and the local-versus-Molab choice, see [docs/development.en.md](development.en.md). For pipeline diagnosis, see [docs/ci.en.md](ci.en.md).

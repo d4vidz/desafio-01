@@ -12,6 +12,9 @@ docs/data-contract.en.md          # source, grain, schema, and quality rules
 docs/feature-roles.en.md          # v0.1 feature roles and evidence protocol
 docs/contributing.en.md           # issue, chart, and merge-request workflow
 docs/branching.en.md              # branches, commits, review, and main protection
+docs/development.en.md            # local environment, Molab, and agent pairing
+docs/ci.en.md                     # pipeline diagnosis and incident log
+docs/team-next-steps.en.md        # team starting point and handoff
 notebooks/                        # Marimo notebooks (.py), when added
 tests/                            # focused tests, when added
 pyproject.toml                   # dependencies and project tooling
@@ -40,9 +43,10 @@ The input file is expected at `data/raw/spotify_tracks.csv`. The notebook should
 
 Each runtime creates an in-memory DuckDB connection and rebuilds its tables from the raw CSV. DuckDB is an ephemeral query layer: do not create, commit, cache, or depend on `.duckdb`/`.db` files. Use DuckDB for scans, joins, deduplication, window functions, and grouped SQL; return bounded results to Polars for typed feature work and charts.
 
-The analysis uses three explicit grains:
+The analysis uses relations with four explicit grains:
 
 - `tracks_raw`: one row per source CSV row; duplicates are retained for auditability.
+- `tracks_clean`: one cleaned source row without the exported index, used as shared input.
 - `tracks`: one canonical row per `track_id`, used for track-level features, PCA, clustering, and popularity summaries.
 - `track_genres`: one row per track–genre relationship, used for genre comparisons and graph-derived views.
 
@@ -58,6 +62,7 @@ Every chart must identify its question, unit of analysis, aggregation, and relev
 Start with the existing GitLab guide questions, then open a focused issue for the concrete analysis or engineering deliverable. Link the issue to its question, grain, method, expected artifact, caveats, and definition of done. Keep exploratory claims descriptive unless a validated target and held-out evaluation support a predictive claim. Full workflow details are in [docs/contributing.en.md](docs/contributing.en.md).
 
 Git conventions are documented in [docs/branching.en.md](docs/branching.en.md).
+Environment and local/Molab usage are in [docs/development.en.md](docs/development.en.md); the operational team handoff is in [docs/team-next-steps.en.md](docs/team-next-steps.en.md).
 
 ## Current scope and next paths
 

@@ -17,7 +17,7 @@ Use uma issue de `especificação` antes de implementar contratos compartilhados
 - Escreva notebooks Marimo como arquivos Python puros, com células pequenas orientadas por dependências e uma expressão final significativa para cada resultado renderizado.
 - Não altere objetos entre células; crie novos frames Polars ou objetos de resultado.
 - Reconstrua a camada DuckDB em memória a partir de `data/raw/spotify_tracks.csv` a cada início de runtime.
-- Mantenha `tracks_raw`, `tracks` e `track_genres` distintos e nomeie o grain nas funções de análise e nos títulos dos gráficos.
+- Mantenha `tracks_raw`, `tracks_clean`, `tracks`, `track_genres` e `track_artists` distintos e nomeie o grain nas funções de análise e nos títulos dos gráficos. Todo notebook deve consumir a limpeza compartilhada; não replique suas regras em células.
 - Prefira Polars tipado a pandas. Mantenha SQL em células ou módulos auxiliares legíveis e testáveis.
 - Para a análise humana, use o painel v0.1 em [docs/feature-roles.md](feature-roles.md); mantenha as demais features disponíveis para seleção automatizada e análises de sensibilidade.
 - Não versione arquivos de banco, exports gerados, caches de notebook ou payloads de gráficos grandes e sem limite.
@@ -52,3 +52,4 @@ uv run pytest
 O merge request deve resumir a pergunta respondida, o grain dos dados, os outputs alterados, os comandos de validação e a incerteza restante. Deve vincular a issue do GitLab e declarar se o trabalho pertence a Fundação e contratos, Exploração/experimentos e seleção de evidências ou Análise validada/narrativa final. Feche a issue somente quando o código for reproduzível, o output tiver sido revisado e a definition of done documentada estiver satisfeita.
 
 O guia de governança em português está em [docs/governance.md](governance.md); a tradução em inglês está em [docs/governance.en.md](governance.en.md).
+Para configurar o ambiente e escolher entre execução local e Molab, consulte [docs/development.md](development.md). Para diagnosticar pipelines, consulte [docs/ci.md](ci.md).

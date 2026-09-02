@@ -5,22 +5,22 @@
     {
       "canonical": "README.md",
       "translation": "README.en.md",
-      "canonical_sha256": "5e9f75698229b266e4221cd03eafb9e9beeeaf824b4e9f9ac12c820ff9324c5b"
+      "canonical_sha256": "94a2df849c1da975c30384fe2ccd327e4932fcce87983b5d9bc0eaf7355bd9e6"
     },
     {
       "canonical": "docs/contributing.md",
       "translation": "docs/contributing.en.md",
-      "canonical_sha256": "13d17703bdfc9a9bd70a422fc4bcd12536774a6314e6b20785a3f426bae50bab"
+      "canonical_sha256": "cd9e48ef55fb52c4692feba04668efa664cf6730b2268efed62d47b032392ae7"
     },
     {
       "canonical": "docs/data-contract.md",
       "translation": "docs/data-contract.en.md",
-      "canonical_sha256": "6a36c4d891c5800450809b9c776d1540a0ba7015fb5f8a0dc89b4414ca6aa923"
+      "canonical_sha256": "271e6b9033dbe547205d757b3b789be5e1c0c9644bc6e053e8eb800dd184535d"
     },
     {
       "canonical": "docs/governance.md",
       "translation": "docs/governance.en.md",
-      "canonical_sha256": "ae091e769d70c3c4ddfa5bbf1505365ed3e3b5a22af2c13cb8bac51cb82bd82b"
+      "canonical_sha256": "6b97ac93a6c3bc9071c0d53c4875c78e95b0fab1ee5b40b79e8ac4d1149a2a69"
     },
     {
       "canonical": "docs/feature-roles.md",
@@ -31,6 +31,21 @@
       "canonical": "docs/branching.md",
       "translation": "docs/branching.en.md",
       "canonical_sha256": "9ed08721a88497cc2b564f3c132e4ac6657d2075c0d9c18f7d853192fc0c1e82"
+    },
+    {
+      "canonical": "docs/ci.md",
+      "translation": "docs/ci.en.md",
+      "canonical_sha256": "3172408c81200f346c91999d7d02c3eb7dfbd8cd56fccb4f49e5bfc8946fcaca"
+    },
+    {
+      "canonical": "docs/development.md",
+      "translation": "docs/development.en.md",
+      "canonical_sha256": "31d5a76db3ea853e86f86d5c172a539494ba7e16682fbbcbc0aa9e5b25470a58"
+    },
+    {
+      "canonical": "docs/team-next-steps.md",
+      "translation": "docs/team-next-steps.en.md",
+      "canonical_sha256": "ec51fd9ca80fcf44fe667bac0237471c36c6c8b89f49bfed6456be7c6ad1c2ed"
     }
   ]
 }

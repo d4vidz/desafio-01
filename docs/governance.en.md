@@ -24,6 +24,39 @@ Each new issue should use at most one `tipo::`, one `fluxo::`, and one `priorida
 
 Provenance labels named `proposta::<source-or-round>` are temporary: they locate proposals during review and do not replace `tipo::`, `fluxo::`, or `área::`. After the decision is recorded, remove them from issues and retire them until another explicit round. Create a new namespace only when there is a recurring filtering need, a clear definition, no duplicate dimension, and team approval.
 
+### Label palette and descriptions
+
+Colors identify the dimension before the value: blue for type, teal for evidence, purple for area, semantic colors for workflow, and red/orange/yellow for priority. GitLab configuration should follow this source of truth:
+
+| Label | Color | Short description |
+| --- | --- | --- |
+| `tipo::pergunta` | `#1F75CB` | Analytical question that guides one or more deliverables. |
+| `tipo::especificação` | `#0B5CAD` | Implementation contract and acceptance criteria. |
+| `tipo::entrega` | `#428BCA` | Reviewable code, analysis, visualization, or documentation artifact. |
+| `tipo::mudança` | `#6F42C1` | Recorded scope, contract, or correction change. |
+| `evidência::descritiva` | `#008B8B` | Characterizes a distribution, frequency, quality, or dataset summary. |
+| `evidência::comparativa` | `#009A9A` | Compares groups, slices, or conditions with explicit denominators. |
+| `evidência::relacional` | `#00A6A6` | Examines association or structure among variables or entities. |
+| `evidência::contextual` | `#087F8C` | Interprets results using external context and documented caveats. |
+| `evidência::exploratória` | `#00B3B3` | Performs hypothesis-generating screening without a confirmatory claim. |
+| `evidência::explicativa` | `#006D77` | Tests competing mechanisms or explanations without overstating causality. |
+| `evidência::preditiva` | `#005F73` | Evaluates prediction on held-out data with a baseline and uncertainty. |
+| `área::qualidade-de-dados` | `#7B2CBF` | Validity, completeness, duplicates, ranges, and cleaning. |
+| `área::camada-de-dados` | `#5A189A` | Schema, grains, DuckDB, Polars, and shared transformations. |
+| `área::visualização` | `#9D4EDD` | Charts, widgets, interactions, and visual narrative. |
+| `área::modelagem` | `#C77DFF` | Features, experiments, models, and held-out evaluation. |
+| `área::documentação` | `#815AC0` | Guides, contracts, handoffs, and supporting material. |
+| `área::revisão` | `#3C096C` | Independent audit, integration, and quality gate. |
+| `fluxo::pronto` | `#108548` | Scope is sufficient for someone to start work. |
+| `fluxo::em-andamento` | `#1F75CB` | A lead is actively working on the issue. |
+| `fluxo::bloqueado` | `#C91C00` | A dependency or decision prevents material progress. |
+| `fluxo::revisão` | `#D99530` | Implementation or proposal awaits review or acceptance. |
+| `prioridade::1` | `#C91C00` | Blocks correctness, integration, or final delivery. |
+| `prioridade::2` | `#D99530` | Important to the selected narrative or scope. |
+| `prioridade::3` | `#EAC54F` | Non-blocking exploration or follow-up. |
+
+Every GitLab label should have its own description even when it shares its dimension color. `evidência::*` is documentation shorthand; all seven labels retain individual names and describe their corresponding class.
+
 ## Specifications, scope, and changes
 
 A specification is an implementation contract: it defines required decisions, interfaces, invariants, edge cases, non-goals, validation, and the definition of done. A delivery may choose the implementation, but must record any deviation.

@@ -24,6 +24,39 @@ Cada issue nova deve usar, no máximo, uma label `tipo::`, uma `fluxo::` e uma `
 
 Labels de proveniência no formato `proposta::<origem-ou-rodada>` são temporárias: servem para localizar propostas durante a revisão, não substituem `tipo::`, `fluxo::` ou `área::`. Depois da decisão registrada, devem ser removidas das issues e aposentadas até uma nova rodada explícita. Uma nova namespace só deve ser criada quando houver uma necessidade recorrente de filtro, uma definição clara, ausência de duplicação e aprovação do time.
 
+### Paleta e descrição das labels
+
+As cores identificam a dimensão antes do valor: azul para tipo, turquesa para evidência, roxo para área, cores semânticas para fluxo e vermelho/laranja/amarelo para prioridade. A configuração no GitLab deve seguir esta fonte de verdade:
+
+| Label | Cor | Descrição curta |
+| --- | --- | --- |
+| `tipo::pergunta` | `#1F75CB` | Pergunta analítica que orienta uma ou mais entregas. |
+| `tipo::especificação` | `#0B5CAD` | Contrato de implementação e critérios de aceite. |
+| `tipo::entrega` | `#428BCA` | Artefato revisável: código, análise, visualização ou documentação. |
+| `tipo::mudança` | `#6F42C1` | Alteração de escopo, contrato ou correção registrada. |
+| `evidência::descritiva` | `#008B8B` | Caracteriza distribuição, frequência, qualidade ou resumo do dataset. |
+| `evidência::comparativa` | `#009A9A` | Compara grupos, recortes ou condições com denominadores explícitos. |
+| `evidência::relacional` | `#00A6A6` | Examina associação ou estrutura entre variáveis ou entidades. |
+| `evidência::contextual` | `#087F8C` | Interpreta resultados com contexto externo e caveats documentados. |
+| `evidência::exploratória` | `#00B3B3` | Faz screening gerador de hipóteses, sem claim confirmatório. |
+| `evidência::explicativa` | `#006D77` | Testa mecanismos ou explicações concorrentes sem alegar causalidade indevida. |
+| `evidência::preditiva` | `#005F73` | Avalia previsão em dados held-out com baseline e incerteza. |
+| `área::qualidade-de-dados` | `#7B2CBF` | Validade, completude, duplicatas, ranges e limpeza. |
+| `área::camada-de-dados` | `#5A189A` | Schema, grains, DuckDB, Polars e transformações compartilhadas. |
+| `área::visualização` | `#9D4EDD` | Charts, widgets, interações e narrativa visual. |
+| `área::modelagem` | `#C77DFF` | Features, experimentos, modelos e avaliação held-out. |
+| `área::documentação` | `#815AC0` | Guias, contratos, handoffs e material de apoio. |
+| `área::revisão` | `#3C096C` | Auditoria independente, integração e gate de qualidade. |
+| `fluxo::pronto` | `#108548` | Escopo suficiente para alguém iniciar o trabalho. |
+| `fluxo::em-andamento` | `#1F75CB` | Há lead trabalhando ativamente na issue. |
+| `fluxo::bloqueado` | `#C91C00` | Dependência ou decisão impede progresso material. |
+| `fluxo::revisão` | `#D99530` | Implementação ou proposta aguarda revisão/aceite. |
+| `prioridade::1` | `#C91C00` | Bloqueia correção, integração ou entrega final. |
+| `prioridade::2` | `#D99530` | Importante para a narrativa ou escopo selecionado. |
+| `prioridade::3` | `#EAC54F` | Exploração ou follow-up não bloqueador. |
+
+Cada label deve ter descrição própria no GitLab, mesmo quando compartilha a cor de sua dimensão. `evidência::*` é abreviação documental; as sete labels mantêm seus nomes individuais e descrevem a classe correspondente.
+
 ## Especificações, escopo e mudanças
 
 Uma especificação é um contrato de implementação: define decisões obrigatórias, interfaces, invariantes, casos-limite, não objetivos, validação e definição de pronto. A entrega pode escolher a implementação, mas deve registrar qualquer desvio.
