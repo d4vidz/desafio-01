@@ -8,8 +8,10 @@ __pycache__/
 
 # Marimo/local tooling
 .marimo/
+**/__marimo__/
 .jupyter/
 .ipynb_checkpoints/
+*.ipynb
 
 # Ephemeral analytical databases: DuckDB must be recreated from the CSV.
 *.duckdb

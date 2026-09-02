@@ -1,0 +1,36 @@
+{
+  "version": 1,
+  "description": "Pares de documentação: o arquivo em português é canônico.",
+  "pairs": [
+    {
+      "canonical": "README.md",
+      "translation": "README.en.md",
+      "canonical_sha256": "5e9f75698229b266e4221cd03eafb9e9beeeaf824b4e9f9ac12c820ff9324c5b"
+    },
+    {
+      "canonical": "docs/contributing.md",
+      "translation": "docs/contributing.en.md",
+      "canonical_sha256": "13d17703bdfc9a9bd70a422fc4bcd12536774a6314e6b20785a3f426bae50bab"
+    },
+    {
+      "canonical": "docs/data-contract.md",
+      "translation": "docs/data-contract.en.md",
+      "canonical_sha256": "6a36c4d891c5800450809b9c776d1540a0ba7015fb5f8a0dc89b4414ca6aa923"
+    },
+    {
+      "canonical": "docs/governance.md",
+      "translation": "docs/governance.en.md",
+      "canonical_sha256": "ae091e769d70c3c4ddfa5bbf1505365ed3e3b5a22af2c13cb8bac51cb82bd82b"
+    },
+    {
+      "canonical": "docs/feature-roles.md",
+      "translation": "docs/feature-roles.en.md",
+      "canonical_sha256": "519ac0b95aadf43ad6171d2c53a630dd9715b329ca2181dcf45c8e4969c840a7"
+    },
+    {
+      "canonical": "docs/branching.md",
+      "translation": "docs/branching.en.md",
+      "canonical_sha256": "9ed08721a88497cc2b564f3c132e4ac6657d2075c0d9c18f7d853192fc0c1e82"
+    }
+  ]
+}

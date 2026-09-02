@@ -1,60 +1,64 @@
-# Spotify track analysis
+# Análise de faixas do Spotify
 
-Reproducible exploratory analysis of Spotify track metadata and audio features using [Marimo](https://marimo.io/), [DuckDB](https://duckdb.org/), and [Polars](https://pola.rs/).
+Análise exploratória reproduzível de metadados e audio features de faixas do Spotify usando [Marimo](https://marimo.io/), [DuckDB](https://duckdb.org/) e [Polars](https://pola.rs/).
 
-The project is question-led: charts and models should answer a documented question, make their grain and aggregation explicit, and state what the data cannot establish. The first pass covers data quality, missing-value strategies, distributions, relationships, genre-aware comparisons, PCA, clustering, and bounded graph-derived views.
+O projeto é orientado por perguntas: gráficos e modelos devem responder a uma pergunta documentada, tornar explícitos seu grain e sua agregação e declarar o que os dados não permitem estabelecer. A primeira etapa cobre qualidade e missingness dos dados, distribuições, relações, comparações por gênero musical, PCA, clustering, visões derivadas de grafos e modelagem preditiva validada. Como as features numéricas não têm missing values, esta versão documenta a decisão de não imputar.
 
-## Repository layout
+## Estrutura do repositório
 
 ```text
-data/raw/spotify_tracks.csv       # input CSV, added later
-docs/data-contract.md             # source, grain, schema, and quality rules
-docs/contributing.md              # issue, chart, and merge-request workflow
-notebooks/                        # Marimo notebooks (.py), when added
-tests/                            # focused tests, when added
-pyproject.toml                   # dependencies and project tooling
+data/raw/spotify_tracks.csv       # CSV de entrada
+docs/data-contract.md             # fonte, grain, schema e regras de qualidade
+docs/feature-roles.md             # papéis v0.1 das features e protocolo de evidência
+docs/contributing.md              # fluxo de issues, gráficos e merge requests
+docs/branching.md                 # branches, commits, revisão e proteção de main
+notebooks/                        # notebooks Marimo (.py)
+tests/                            # testes focados
+pyproject.toml                   # dependências e ferramentas do projeto
 ```
 
-## Quick start
+## Início rápido
 
-Requires Python 3.12+ and [uv](https://docs.astral.sh/uv/).
+Requer Python 3.12+ e [uv](https://docs.astral.sh/uv/).
 
 ```bash
 uv sync
 uv run marimo edit notebooks/spotify_analysis.py
 ```
 
-For a non-interactive smoke run and notebook validation:
+Para uma execução smoke não interativa e validação do notebook:
 
 ```bash
 uv run marimo check notebooks/spotify_analysis.py
-uv run python notebooks/spotify_analysis.py
+uv run marimo export html notebooks/spotify_analysis.py -o spotify_analysis.html --no-include-code
 uv run pytest
 ```
 
-The input file is expected at `data/raw/spotify_tracks.csv`. The notebook should fail with a clear missing-file error if it is not present; do not silently download, synthesize, or replace the source data.
+O arquivo de entrada deve estar em `data/raw/spotify_tracks.csv`. O notebook deve falhar com uma mensagem clara se o arquivo não estiver presente; não baixe, sintetize ou substitua a fonte silenciosamente.
 
-## Data architecture
+## Arquitetura de dados
 
-Each runtime creates an in-memory DuckDB connection and rebuilds its tables from the raw CSV. DuckDB is an ephemeral query layer: do not create, commit, cache, or depend on `.duckdb`/`.db` files. Use DuckDB for scans, joins, deduplication, window functions, and grouped SQL; return bounded results to Polars for typed feature work and charts.
+Cada runtime cria uma conexão DuckDB em memória e reconstrói suas tabelas a partir do CSV bruto. DuckDB é uma camada efêmera de consulta: não crie, versiona, faça cache nem dependa de arquivos `.duckdb`/`.db`. Use DuckDB para scans, joins, deduplicação, window functions e SQL agrupado; retorne resultados bounded para o trabalho tipado de features e gráficos em Polars.
 
-The analysis uses two explicit grains:
+A análise usa três grains explícitos:
 
-- `tracks_raw`: one row per source CSV row; duplicates are retained for auditability.
-- `tracks`: one canonical row per `track_id`, used for track-level features, PCA, clustering, and popularity summaries.
-- `track_genres`: one row per track–genre relationship, used for genre comparisons and graph-derived views.
+- `tracks_raw`: uma linha por linha do CSV de origem; duplicatas são mantidas para auditoria.
+- `tracks`: uma linha canônica por `track_id`, usada para features por faixa, PCA, clustering e resumos de popularidade.
+- `track_genres`: uma linha por relação faixa–gênero, usada para comparações por gênero e visões derivadas de grafos.
 
-See [docs/data-contract.md](docs/data-contract.md) for the full contract and quality policy.
-The measured rationale for the ephemeral DuckDB layer is in [docs/duckdb-benchmark.md](docs/duckdb-benchmark.md).
+Consulte [docs/data-contract.md](docs/data-contract.md) para o contrato completo e a política de qualidade.
+A justificativa medida para a camada efêmera de DuckDB está em [docs/duckdb-benchmark.md](docs/duckdb-benchmark.md).
 
-## Visualization principles
+## Princípios de visualização
 
-Every chart must identify its question, unit of analysis, aggregation, and relevant caveat. Outputs should be bounded and readable in Marimo; avoid displaying full tables or raw graph objects. Genre charts must show sparse-group handling and clarify whether multi-genre tracks contribute to multiple groups. Treemaps and networks are allowed only when the hierarchy or edges represent a meaningful relationship—for example, `genre → artist → track` or an aggregated genre-overlap network.
+Todo gráfico deve identificar sua pergunta, unidade de análise, agregação e caveat relevante. Outputs devem ser bounded e legíveis no Marimo; evite exibir tabelas completas ou objetos de grafo brutos. Gráficos por gênero devem mostrar o tratamento de grupos esparsos e esclarecer se faixas com múltiplos gêneros contribuem para vários grupos. Treemaps e redes só são permitidos quando a hierarquia ou as arestas representam uma relação significativa, por exemplo, `genre → artist → track` ou uma rede agregada de sobreposição entre gêneros.
 
-## Contributing
+## Contribuição
 
-Start with the existing GitLab guide questions, then open a focused issue for the concrete analysis or engineering deliverable. Link the issue to its question, grain, method, expected artifact, caveats, and definition of done. Keep exploratory claims descriptive unless a validated target and held-out evaluation support a predictive claim. Full workflow details are in [docs/contributing.md](docs/contributing.md).
+Comece pelas guide questions existentes no GitLab e abra uma issue focada para a análise ou entrega de engenharia concreta. Vincule a issue à pergunta, ao grain, ao método, ao artifact esperado, aos caveats e à definition of done. Mantenha claims exploratórios descritivos, salvo quando um target validado e uma avaliação held-out sustentarem um claim preditivo. O fluxo completo está em [docs/contributing.md](docs/contributing.md).
 
-## Current scope and next paths
+As convenções de Git estão em [docs/branching.md](docs/branching.md).
 
-The initial milestones are Foundation, General and genre analysis, and Final story. Possible follow-ups include genre-overlap and artist–genre graphs, sensitivity analysis for duplicate and multi-genre policies, time-aware analysis if temporal data is added, and baseline popularity modeling with group-aware evaluation. These are hypotheses to investigate, not conclusions implied by the current CSV.
+## Escopo atual e próximos caminhos
+
+Os milestones iniciais são Fundação e contratos, Exploração/experimentos e seleção de evidências e Análise validada/narrativa final. Possíveis follow-ups incluem grafos de sobreposição entre gêneros e de artista–gênero, análise de sensibilidade para políticas de duplicatas e múltiplos gêneros, análise orientada por tempo se dados temporais forem adicionados e modelagem baseline de popularidade com avaliação group-aware. São hipóteses a investigar, não conclusões implícitas no CSV atual.
