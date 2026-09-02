@@ -1,40 +1,95 @@
-# Data contract
+# Contrato de dados
 
-This contract keeps the Spotify analysis reproducible and prevents accidental mixing of row grains.
+A versão canônica deste documento é esta. A tradução em inglês está em
+[`data-contract.en.md`](data-contract.en.md); mantenha os dois arquivos
+sincronizados quando o contrato mudar.
 
-## Source
+Este contrato mantém a análise do Spotify reproduzível e evita a mistura
+acidental de grãos de linha.
 
-The expected source is `data/raw/spotify_tracks.csv`. It is the authoritative input for each notebook run and should be preserved unchanged. The data-loading cell must use an explicit schema where practical and should report the file path, row count, column names, and inferred/declared dtypes.
+## Fonte
 
-The project does not persist an analytical database. At runtime, create `duckdb.connect(":memory:")`, load the CSV into temporary or session-scoped tables, and rebuild those tables after every restart. Persistent `.duckdb`, `.db`, or materialized database files are out of scope.
+A fonte esperada é `data/raw/spotify_tracks.csv`. Ela é a entrada
+autoritativa de cada execução e deve ser preservada sem alterações. O primeiro
+campo do CSV tem cabeçalho vazio e é exposto como `source_row_id`,
+exclusivamente para auditoria da linha de origem. O carregador tipado declara o
+schema restante em `spotify_data/data_contract.py`; não depende de
+autodetecção.
 
-## Grains
+Campos vazios do CSV tornam-se nulos. Nenhum valor é preenchido.
+`load_tracks_raw` valida nomes, ordem e tipos antes de qualquer transformação.
 
-| Relation | Grain | Purpose |
+O projeto não persiste um banco analítico. Em runtime, crie
+`duckdb.connect(":memory:")`, carregue o CSV em tabelas temporárias ou
+restritas à sessão e reconstrua essas tabelas após cada reinício. Arquivos
+`.duckdb`, `.db` ou bancos materializados persistentes estão fora do escopo.
+
+## Grãos
+
+| Relação | Grão | Uso |
 | --- | --- | --- |
-| `tracks_raw` | one source row | audit duplicates, nulls, invalid values, and source fidelity |
-| `tracks` | one row per `track_id` | track-level distributions, PCA, clustering, and popularity |
-| `track_genres` | one row per `track_id` × genre | genre comparisons, overlap, and graph-derived views |
+| `tracks_raw` | uma linha da fonte | auditar duplicatas, nulos, valores inválidos e fidelidade da fonte |
+| `tracks` | uma linha por `track_id` | distribuições por faixa, PCA, clustering e popularidade |
+| `track_genres` | uma linha por `track_id` × gênero | comparações, sobreposição e visões derivadas de grafos |
+| `track_artists` | uma linha por `track_id` × artista | rede artista–gênero e agregações |
 
-The source may contain repeated `track_id` values because a track can occur in more than one genre relationship. Never silently treat source rows as independent tracks. Any canonicalization rule must be named, deterministic, and compared with the raw counts.
+A fonte pode conter valores repetidos de `track_id` porque uma faixa pode
+aparecer em mais de uma relação com gênero. Nunca trate silenciosamente as
+linhas da fonte como faixas independentes. Identificadores nulos são
+reportados; relações filhas que dependem deles excluem essas linhas sem
+inventar chaves.
 
-## Quality checks
+Para cada `track_id`, `tracks` usa a mediana da popularidade e preserva
+`popularity_min`, `popularity_max`, `popularity_count`,
+`popularity_distinct_count`, `popularity_range` e `popularity_conflict`.
+Assim, a deduplicação fica observável em vez de silenciosa. Outros campos
+repetidos de metadados e audio features são reduzidos com `MIN` determinístico
+somente após uma validação fail-fast: qualquer divergência, inclusive entre
+nulo e não nulo, interrompe a construção. Popularidade e gênero são exceções;
+gênero é explicitamente many-to-many. O gênero em `tracks` é apenas um valor
+representativo; a análise por gênero usa `track_genres`.
 
-At minimum, report:
+A separação de artistas usa somente o literal `;`. Vírgulas, barras, `&` e
+outras pontuações permanecem no rótulo do artista. Espaços são removidos nas
+extremidades, os rótulos são normalizados com Unicode NFKC, componentes vazios
+são descartados e o primeiro `artist_position` observado é preservado. A
+relação final é distinta por `track_id` × artista.
 
-- missing count and percentage by column;
-- exact duplicate rows and repeated `track_id` counts;
-- expected numeric ranges and sentinel candidates, including zero durations or tempos;
-- non-finite numeric values and parsing failures;
-- cardinality changes from `tracks_raw` to `tracks` and `track_genres`;
-- sparse genres and the number of multi-genre relationships.
+## Checks de qualidade
 
-Missing-value imputation is an analysis choice, not a source correction. Compare at least a global statistic and a track/group-aware strategy where possible, retain a missingness indicator when imputing features, and never overwrite `tracks_raw`.
+No mínimo, reporte:
 
-## Typed boundaries
+- contagem e percentual de missingness por coluna;
+- linhas exatamente duplicadas e contagem de `track_id` repetidos;
+- intervalos numéricos esperados e candidatos a sentinel, incluindo durações ou tempos iguais a zero;
+- valores numéricos não finitos e falhas de parsing;
+- mudanças de cardinalidade de `tracks_raw` para `tracks` e `track_genres`;
+- gêneros esparsos e quantidade de relações com múltiplos gêneros.
 
-Use Polars (`pl.DataFrame`/`pl.LazyFrame`) for typed transformations, feature matrices, and bounded chart inputs. Use DuckDB SQL for relational operations and aggregations that benefit from its scan and join engine. Convert SQL results to Polars at the boundary and keep chart inputs small enough for interactive Marimo rendering.
+Não há imputation na fonte nem nas tabelas canônicas. `tracks_raw` preserva
+nulos; uma análise pode excluir linhas quando um identificador for necessário,
+mas não deve inventar valores de features. A fonte atual não tem missingness
+numérica, portanto um experimento artificial de imputation está fora do
+escopo. Se uma fonte futura tiver nulos numéricos, imputation deverá ser uma
+decisão analítica separada, com indicador de missingness e análise de
+sensibilidade, nunca uma sobrescrita de `tracks_raw`.
 
-## Interpretation limits
+## Fronteiras tipadas
 
-Popularity is an observed catalogue variable, not a causal outcome or a direct measure of listeners. PCA and clustering summarize feature geometry; they do not reveal listener segments. Genre comparisons must state the multi-genre counting rule and avoid overinterpreting sparse categories. Predictive claims require a declared target, leakage review, group/time-aware splitting when appropriate, and held-out metrics.
+Use Polars (`pl.DataFrame`/`pl.LazyFrame`) para ingestão tipada explícita, o
+parser conservador de artistas, matrizes de features e entradas bounded para
+gráficos. Use DuckDB SQL para tabelas relacionais temporárias, deduplicação,
+joins e agregações. Converta resultados SQL para Polars na fronteira e
+mantenha as entradas dos gráficos pequenas o suficiente para renderização
+interativa no Marimo.
+
+## Limites de interpretação
+
+Cada runtime cria explicitamente `duckdb.connect(":memory:")` e reconstrói as
+tabelas temporárias a partir do CSV. Nenhum arquivo `.duckdb` é persistido.
+Popularidade é uma variável observada do catálogo, não um resultado causal nem
+uma medida direta de ouvintes. PCA e clustering resumem a geometria das
+features; não revelam segmentos de ouvintes. Comparações por gênero devem
+declarar a regra de contagem de múltiplos gêneros e evitar a superinterpretação
+de categorias esparsas. Claims preditivos exigem target declarado, revisão de
+leakage, divisão por grupo/tempo quando apropriado e métricas held-out.
