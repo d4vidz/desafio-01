@@ -1,303 +1,322 @@
 import marimo
 
-
 __generated_with = "0.20.4"
-app = marimo.App(width="medium")
+app = marimo.App(width="full")
 
 
 @app.cell
 def _():
+    import sys
     from pathlib import Path
-
-    import duckdb
+    _repo_root = Path(__file__).resolve().parents[1]
+    if str(_repo_root) not in sys.path:
+        sys.path.insert(0, str(_repo_root))
     import marimo as mo
     import numpy as np
     import plotly.graph_objects as go
     import polars as pl
     from sklearn.cluster import KMeans
     from sklearn.decomposition import PCA
+    from sklearn.ensemble import HistGradientBoostingRegressor
+    from sklearn.metrics import (calinski_harabasz_score, davies_bouldin_score,
+                                 mean_absolute_error, mean_squared_error, r2_score,
+                                 silhouette_score)
+    from sklearn.model_selection import GroupShuffleSplit, ShuffleSplit
     from sklearn.preprocessing import StandardScaler
-
-    return KMeans, PCA, Path, StandardScaler, duckdb, go, mo, np, pl
+    from wigglystuff import ParallelCoordinates, Treemap
+    from spotify_data import build_duckdb_layer, load_tracks_raw, missing_identifier_counts
+    return (GroupShuffleSplit, HistGradientBoostingRegressor, KMeans, PCA,
+            ParallelCoordinates, Path, ShuffleSplit, StandardScaler, Treemap,
+            build_duckdb_layer, calinski_harabasz_score, davies_bouldin_score,
+            go, load_tracks_raw, mean_absolute_error, mean_squared_error,
+            missing_identifier_counts, mo, np, pl, r2_score, silhouette_score)
 
 
 @app.cell
-def _(Path, mo):
+def _(Path, build_duckdb_layer, load_tracks_raw, mo):
     csv_path = Path(__file__).resolve().parents[1] / "data" / "raw" / "spotify_tracks.csv"
-    mo.stop(not csv_path.exists(), mo.md(f"Input CSV not found: `{csv_path}`"))
-    return (csv_path,)
-
-
-@app.cell
-def _(csv_path, duckdb, pl):
-    # The database is intentionally ephemeral: each Marimo runtime starts here.
-    duckdb_conn = duckdb.connect(":memory:")
-    duckdb_conn.execute(
-        "CREATE TEMP TABLE tracks_raw AS SELECT * FROM read_csv_auto(?, sample_size=-1, nullstr='')",
-        [str(csv_path)],
-    )
-    duckdb_conn.execute(
-        """
-        CREATE TEMP TABLE track_genres AS
-        SELECT DISTINCT track_id, track_genre
-        FROM tracks_raw
-        WHERE track_id IS NOT NULL AND track_genre IS NOT NULL
-        """
-    )
-    duckdb_conn.execute(
-        """
-        CREATE TEMP TABLE tracks AS
-        SELECT
-            track_id,
-            any_value(artists) AS artists,
-            any_value(album_name) AS album_name,
-            any_value(track_name) AS track_name,
-            any_value(track_genre) AS display_genre,
-            median(popularity) AS popularity,
-            any_value(duration_ms) AS duration_ms,
-            any_value(explicit) AS explicit,
-            any_value(danceability) AS danceability,
-            any_value(energy) AS energy,
-            any_value(loudness) AS loudness,
-            any_value(speechiness) AS speechiness,
-            any_value(acousticness) AS acousticness,
-            any_value(instrumentalness) AS instrumentalness,
-            any_value(liveness) AS liveness,
-            any_value(valence) AS valence,
-            any_value(tempo) AS tempo
-        FROM tracks_raw
-        WHERE track_id IS NOT NULL
-        GROUP BY track_id
-        """
-    )
-    tracks_raw = duckdb_conn.execute("SELECT * FROM tracks_raw").pl()
-    tracks = duckdb_conn.execute("SELECT * FROM tracks").pl()
-    track_genres = duckdb_conn.execute("SELECT * FROM track_genres").pl()
-    genre_catalog = track_genres.join(tracks, on="track_id", how="inner")
-    data_contract = pl.DataFrame(
-        {
-            "relation": ["tracks_raw", "tracks", "track_genres"],
-            "rows": [tracks_raw.height, tracks.height, track_genres.height],
-            "grain": ["source CSV row", "one row per track_id", "track_id x track_genre edge"],
-        }
-    )
-    return data_contract, duckdb_conn, genre_catalog, track_genres, tracks, tracks_raw
-
-
-@app.cell
-def _(data_contract, mo):
-    mo.vstack(
-        [
-            mo.md("# Spotify track analysis\n\nA reproducible, evidence-led first pass. DuckDB is rebuilt in memory from the committed CSV on every runtime start."),
-            mo.md("## Runtime data contract"),
-            mo.ui.table(data_contract),
-        ]
-    )
-    return
-
-
-@app.cell
-def _(pl, tracks, tracks_raw):
-    missingness = tracks_raw.select(
-        [pl.col(column).is_null().sum().alias(column) for column in tracks_raw.columns]
-    ).transpose(include_header=True, header_name="column", column_names=["missing"])
-    repeated_track_ids = (
-        tracks_raw.group_by("track_id")
-        .len()
-        .filter(pl.col("len") > 1)
-        .height
-    )
-    duplicate_audit = pl.DataFrame(
-        {
-            "metric": ["raw rows", "unique track IDs", "repeated track IDs", "exact duplicate rows"],
-            "value": [
-                tracks_raw.height,
-                tracks.height,
-                repeated_track_ids,
-                tracks_raw.is_duplicated().sum(),
-            ],
-        }
-    )
-    domain_checks = pl.DataFrame(
-        {
-            "check": ["zero duration", "zero tempo", "popularity outside 0-100"],
-            "rows": [
-                tracks_raw.filter(pl.col("duration_ms") <= 0).height,
-                tracks_raw.filter(pl.col("tempo") <= 0).height,
-                tracks_raw.filter((pl.col("popularity") < 0) | (pl.col("popularity") > 100)).height,
-            ],
-        }
-    )
-    return domain_checks, duplicate_audit, missingness
-
-
-@app.cell
-def _(domain_checks, duplicate_audit, missingness, mo):
-    mo.vstack(
-        [
-            mo.md("## Data quality and source grain\n\nThe raw table is not automatically a track-level table; repeated `track_id` values are retained here and resolved explicitly downstream."),
-            mo.ui.table(missingness.filter(missingness["missing"] > 0)),
-            mo.ui.table(duplicate_audit),
-            mo.ui.table(domain_checks),
-        ]
-    )
-    return
-
-
-@app.cell
-def _(track_genres):
-    genre_options = sorted(track_genres.get_column("track_genre").unique().to_list())
-    return (genre_options,)
-
-
-@app.cell
-def _(genre_options, mo):
-    genre_selector = mo.ui.dropdown(options=genre_options, value=genre_options[0], label="Genre")
-    genre_selector
-    return (genre_selector,)
-
-
-@app.cell
-def _(duckdb_conn, genre_selector, go):
-    selected_genre = genre_selector.value
-    genre_profile = duckdb_conn.execute(
-        """
-        SELECT count(*) AS track_genre_edges, count(DISTINCT track_id) AS unique_tracks,
-               median(popularity) AS median_popularity, avg(energy) AS mean_energy,
-               avg(danceability) AS mean_danceability, avg(acousticness) AS mean_acousticness
-        FROM track_genres JOIN tracks USING (track_id)
-        WHERE track_genre = ?
-        """,
-        [selected_genre],
-    ).pl()
-    genre_points = duckdb_conn.execute(
-        """
-        SELECT track_name, artists, popularity, energy, danceability
-        FROM track_genres JOIN tracks USING (track_id)
-        WHERE track_genre = ?
-        LIMIT 2500
-        """,
-        [selected_genre],
-    ).pl().drop_nulls()
-    fig_genre = go.Figure(go.Scattergl(
-        x=genre_points.get_column("energy").to_numpy(),
-        y=genre_points.get_column("danceability").to_numpy(),
-        mode="markers",
-        marker={"size": 6, "opacity": 0.55, "color": genre_points.get_column("popularity").to_numpy(), "colorscale": "Viridis", "colorbar": {"title": "Popularity"}},
-        text=(genre_points.get_column("track_name") + " - " + genre_points.get_column("artists")).to_list(),
-        hovertemplate="%{text}<br>energy=%{x:.2f}<br>danceability=%{y:.2f}<extra></extra>",
-    ))
-    fig_genre.update_layout(title=f"{selected_genre}: energy and danceability", xaxis_title="Energy", yaxis_title="Danceability", template="plotly_white", height=460)
-    return fig_genre, genre_profile, selected_genre
-
-
-@app.cell
-def _(fig_genre, genre_profile, genre_selector, mo):
-    mo.vstack([
-        mo.md("## Genre-specific profile"),
-        genre_selector,
-        mo.ui.table(genre_profile),
-        fig_genre,
-        mo.md("This section counts the selected track-genre relationships. The PCA section below uses one canonical row per track."),
-    ])
-    return
-
-
-@app.cell
-def _(go, tracks):
-    feature_columns = ["danceability", "energy", "loudness", "speechiness", "acousticness", "instrumentalness", "liveness", "valence", "tempo"]
-    pca_source = tracks.select(["track_id", "popularity"] + feature_columns).drop_nulls()
-    if pca_source.height > 20000:
-        pca_source = pca_source.sample(n=20000, seed=2026)
-    return feature_columns, pca_source
-
-
-@app.cell
-def _(KMeans, PCA, StandardScaler, feature_columns, np, pca_source, pl):
-    scaled_features = StandardScaler().fit_transform(pca_source.select(feature_columns).to_numpy())
-    pca_model = PCA(n_components=3, random_state=2026)
-    pca_values = pca_model.fit_transform(scaled_features)
-    cluster_model = KMeans(n_clusters=3, n_init=10, random_state=2026)
-    clusters = cluster_model.fit_predict(scaled_features)
-    pca_frame = pca_source.with_columns(
-        [
-            pl.Series("PC1", pca_values[:, 0]),
-            pl.Series("PC2", pca_values[:, 1]),
-            pl.Series("PC3", pca_values[:, 2]),
-            pl.Series("cluster", clusters),
-        ]
-    )
-    pca_variance = pl.DataFrame({"component": ["PC1", "PC2", "PC3"], "explained_variance": pca_model.explained_variance_ratio_}).with_columns(pl.col("explained_variance").round(4))
-    return pca_frame, pca_variance
-
-
-@app.cell
-def _(go, pca_frame, pca_variance):
-    fig_pca = go.Figure(go.Scattergl(
-        x=pca_frame.get_column("PC1").to_numpy(),
-        y=pca_frame.get_column("PC2").to_numpy(),
-        mode="markers",
-        marker={"size": 4, "opacity": 0.45, "color": pca_frame.get_column("cluster").to_numpy(), "colorscale": "Viridis"},
-        hovertemplate="PC1=%{x:.2f}<br>PC2=%{y:.2f}<extra></extra>",
-    ))
-    fig_pca.update_layout(title="PCA projection of canonical tracks", xaxis_title="PC1", yaxis_title="PC2", template="plotly_white", height=540)
-    return fig_pca
-
-
-@app.cell
-def _(fig_pca, mo, pca_variance):
-    mo.vstack([
-        mo.md("## PCA and exploratory clustering\n\nClusters summarize audio-feature geometry. They are not listener segments or a musical taxonomy."),
-        mo.ui.table(pca_variance),
-        fig_pca,
-    ])
-    return
-
-
-@app.cell
-def _(duckdb_conn, go, np):
-    top_genres = duckdb_conn.execute("SELECT track_genre FROM track_genres GROUP BY 1 ORDER BY count(*) DESC LIMIT 14").fetchall()
-    graph_genres = [row[0] for row in top_genres]
-    overlap = duckdb_conn.execute(
-        """
-        SELECT a.track_genre AS genre_a, b.track_genre AS genre_b, count(DISTINCT a.track_id) AS shared_tracks
-        FROM track_genres a JOIN track_genres b ON a.track_id = b.track_id AND a.track_genre < b.track_genre
-        WHERE a.track_genre IN (SELECT unnest(?)) AND b.track_genre IN (SELECT unnest(?))
-        GROUP BY 1, 2
-        """,
-        [graph_genres, graph_genres],
-    ).fetchall()
-    overlap_index = {genre: index for index, genre in enumerate(graph_genres)}
-    overlap_matrix = np.zeros((len(graph_genres), len(graph_genres)), dtype=int)
-    for genre_a, genre_b, shared in overlap:
-        overlap_matrix[overlap_index[genre_a], overlap_index[genre_b]] = shared
-        overlap_matrix[overlap_index[genre_b], overlap_index[genre_a]] = shared
-    fig_overlap = go.Figure(go.Heatmap(z=overlap_matrix, x=graph_genres, y=graph_genres, colorscale="Blues", hovertemplate="%{y} and %{x}: %{z} shared tracks<extra></extra>"))
-    fig_overlap.update_layout(title="Genre-overlap graph: shared track IDs", template="plotly_white", height=600)
-    return fig_overlap
-
-
-@app.cell
-def _(fig_overlap, mo):
-    mo.vstack([
-        mo.md("## Derived graph view\n\nThis is an aggregated projection of track-genre edges, not a listener or influence network."),
-        fig_overlap,
-    ])
-    return
+    mo.stop(not csv_path.exists(), mo.md(f"CSV não encontrado: `{csv_path}`"))
+    tracks_raw = load_tracks_raw(csv_path)
+    db = build_duckdb_layer(csv_path)
+    tracks = db.execute("SELECT * FROM tracks ORDER BY track_id").pl()
+    track_genres = db.execute("SELECT * FROM track_genres ORDER BY track_id, track_genre").pl()
+    track_artists = db.execute("SELECT * FROM track_artists ORDER BY track_id, artist_position").pl()
+    return csv_path, db, track_artists, track_genres, tracks, tracks_raw
 
 
 @app.cell
 def _(mo):
-    interpretation_text = "\n".join(
-        [
-            "## Interpretation boundaries",
-            "",
-            "- Popularity is an observed catalogue field, not a causal outcome or a future-hit label.",
-            "- Multi-genre tracks are intentionally counted in each associated genre view but only once in canonical-track PCA and clustering.",
-            "- Any predictive extension must define a target, prevent leakage, and beat transparent baselines on held-out data.",
-        ]
-    )
-    mo.md(interpretation_text)
+    mo.md("""
+    # Spotify: do contrato de dados à evidência
+    O CSV versionado é a fonte; DuckDB é reconstruído **em memória** e entrega frames Polars
+    limitados às visualizações. Pergunta orientadora: **quais relações descritivas e preditivas
+    são sustentadas pelo catálogo, sem confundir associação com causalidade?**
+    """)
+    return
+
+
+@app.cell
+def _(missing_identifier_counts, pl, track_artists, track_genres, tracks, tracks_raw):
+    contract = pl.DataFrame({
+        "relação": ["tracks_raw", "tracks", "track_genres", "track_artists"],
+        "linhas": [tracks_raw.height, tracks.height, track_genres.height, track_artists.height],
+        "grain": ["linha do CSV", "track_id", "track_id × gênero", "track_id × artista"],
+    })
+    missing = missing_identifier_counts(tracks_raw).filter(pl.col("missing_count") > 0)
+    audit = pl.DataFrame({
+        "métrica": ["linhas brutas", "faixas", "track_id repetidos", "duplicatas sem gênero",
+                    "faixas multigênero", "conflitos de popularidade"],
+        "valor": [tracks_raw.height, tracks.height,
+                  tracks_raw.group_by("track_id").len().filter(pl.col("len") > 1).height,
+                  tracks_raw.drop("track_genre").is_duplicated().sum(),
+                  tracks.filter(pl.col("genre_count") > 1).height,
+                  tracks.filter(pl.col("popularity_conflict")).height],
+    })
+    ranges = pl.DataFrame({
+        "regra": ["popularidade fora de [0,100]", "duration_ms <= 0", "tempo <= 0"],
+        "linhas": [tracks_raw.filter(~pl.col("popularity").is_between(0, 100)).height,
+                   tracks_raw.filter(pl.col("duration_ms") <= 0).height,
+                   tracks_raw.filter(pl.col("tempo") <= 0).height],
+    })
+    return audit, contract, missing, ranges
+
+
+@app.cell
+def _(audit, contract, missing, mo, ranges):
+    mo.vstack([mo.md("## 1. Contrato e qualidade"),
+               mo.hstack([mo.ui.table(contract), mo.ui.table(audit)], widths="equal"),
+               mo.md("Há **zero missingness numérico**: imputação inventaria um experimento sem objeto. Identificadores ausentes ficam visíveis. Popularidade divergente é consolidada por mediana, preservando mínimo, máximo, contagem, amplitude e flag."),
+               mo.hstack([mo.ui.table(missing), mo.ui.table(ranges)], widths="equal")])
+    return
+
+
+@app.cell
+def _(go, pl, tracks):
+    features = ["danceability", "energy", "loudness", "speechiness", "acousticness",
+                "instrumentalness", "liveness", "valence", "tempo", "duration_ms"]
+    human_features = ["danceability", "energy", "valence", "acousticness", "instrumentalness", "speechiness"]
+    feature_roles = pl.DataFrame({
+        "papel": ["painel humano", "sensibilidade/contexto", "categóricas/contexto", "pool automatizado"],
+        "colunas": [
+            ", ".join(human_features),
+            "loudness, liveness, tempo, duration_ms",
+            "explicit, key, mode, time_signature, gênero e artista",
+            "todas as audio features e categóricas válidas, sem popularity ou IDs",
+        ],
+        "regra": [
+            "associações e comparações principais",
+            "sensibilidade, redundância e experimentos secundários",
+            "análises próprias e agrupamento; não correlação contínua silenciosa",
+            "seleção regularizada, importance e estabilidade held-out",
+        ],
+    })
+    fig_distribution = go.Figure(go.Histogram(x=tracks["popularity"].to_numpy(), nbinsx=40))
+    fig_distribution.update_layout(title="Popularidade canônica por faixa", xaxis_title="popularidade",
+                                   yaxis_title="faixas", template="plotly_white", height=420)
+    return feature_roles, features, fig_distribution, human_features
+
+
+@app.cell
+def _(feature_roles, mo):
+    mo.vstack([
+        mo.md("## 2. Papéis das features e foco do primeiro ciclo"),
+        mo.ui.table(feature_roles),
+        mo.md("O painel humano é um foco interpretativo v0.1, não uma remoção de colunas. O pool automatizado permanece mais amplo e deve respeitar os splits e a disponibilidade de cada feature."),
+    ])
+    return
+
+
+@app.cell
+def _(fig_distribution, mo):
+    mo.vstack([mo.md("## 3. Distribuições e possíveis outliers"), fig_distribution,
+               mo.md("Zeros são valores observados, não missingness. Extremos são sinalizados para investigação; não são removidos só por IQR, pois raridade e erro de inserção são conceitos diferentes.")])
+    return
+
+
+@app.cell
+def _(features, mo):
+    x_ctl = mo.ui.dropdown(features, value="energy", label="X")
+    y_ctl = mo.ui.dropdown(features, value="danceability", label="Y")
+    color_ctl = mo.ui.dropdown(["popularity", "genre_count", *features], value="popularity", label="Cor")
+    return color_ctl, x_ctl, y_ctl
+
+
+@app.cell
+def _(color_ctl, go, tracks, x_ctl, y_ctl):
+    rel = tracks.select(["track_name", "artists", x_ctl.value, y_ctl.value, color_ctl.value]).drop_nulls()
+    rel = rel.sample(n=min(4_000, rel.height), seed=2026)
+    fig_rel = go.Figure(go.Scattergl(x=rel[x_ctl.value].to_numpy(), y=rel[y_ctl.value].to_numpy(),
+        mode="markers", marker={"size": 6, "opacity": .45, "color": rel[color_ctl.value].to_numpy(),
+        "colorscale": "Viridis", "colorbar": {"title": color_ctl.value}},
+        text=(rel["track_name"] + " — " + rel["artists"]).to_list(),
+        hovertemplate="%{text}<br>x=%{x:.3f}<br>y=%{y:.3f}<extra></extra>"))
+    fig_rel.update_layout(title=f"{x_ctl.value} × {y_ctl.value}", template="plotly_white", height=500)
+    return fig_rel
+
+
+@app.cell
+def _(color_ctl, fig_rel, mo, x_ctl, y_ctl):
+    mo.vstack([mo.md("## 4. Relações"), mo.hstack([x_ctl, y_ctl, color_ctl]), fig_rel,
+               mo.md("Amostra determinística de até 4.000 faixas; cor não implica mecanismo causal.")])
+    return
+
+
+@app.cell
+def _(ParallelCoordinates, mo, pl, tracks):
+    pc = tracks.select(["popularity", "danceability", "energy", "acousticness",
+                        "instrumentalness", "valence", "genre_count"]).drop_nulls()
+    pc = pc.sample(n=min(700, pc.height), seed=2026).with_columns(
+        pl.when(pl.col("popularity") >= pl.col("popularity").quantile(.75))
+        .then(pl.lit("quartil superior")).otherwise(pl.lit("demais")).alias("grupo"))
+    parallel = mo.ui.anywidget(ParallelCoordinates(pc, color_by="grupo",
+        color_map={"quartil superior": "#e76f51", "demais": "#277da1"}, height=500, width=0))
+    parallel
+    return
+
+
+@app.cell
+def _(KMeans, PCA, StandardScaler, calinski_harabasz_score, davies_bouldin_score,
+      features, pl, silhouette_score, tracks):
+    psrc = tracks.select(["track_id", "popularity", *features]).drop_nulls()
+    psrc = psrc.sample(n=min(20_000, psrc.height), seed=2026)
+    scaled = StandardScaler().fit_transform(psrc.select(features).to_numpy())
+    pca = PCA(n_components=3, random_state=2026)
+    pcs = pca.fit_transform(scaled)
+    _cluster_rows, labels_by_k = [], {}
+    for k in range(2, 7):
+        labels = KMeans(n_clusters=k, n_init=10, random_state=2026).fit_predict(scaled)
+        labels_by_k[k] = labels
+        _cluster_rows.append({"k": k, "silhouette": silhouette_score(scaled, labels, sample_size=5_000, random_state=2026),
+                     "davies_bouldin": davies_bouldin_score(scaled, labels),
+                     "calinski_harabasz": calinski_harabasz_score(scaled, labels)})
+    cluster_metrics = pl.DataFrame(_cluster_rows).with_columns(pl.all().exclude("k").round(3))
+    best_k = int(cluster_metrics.sort("silhouette", descending=True)[0, "k"])
+    pframe = psrc.with_columns(pl.Series("PC1", pcs[:, 0]), pl.Series("PC2", pcs[:, 1]),
+                              pl.Series("PC3", pcs[:, 2]), pl.Series("cluster", labels_by_k[best_k]))
+    variance = pl.DataFrame({"PC": [1, 2, 3], "variância_explicada": pca.explained_variance_ratio_})
+    return best_k, cluster_metrics, pframe, variance
+
+
+@app.cell
+def _(best_k, cluster_metrics, go, mo, pframe, variance):
+    fig_pca = go.Figure(go.Scatter3d(x=pframe["PC1"].to_numpy(), y=pframe["PC2"].to_numpy(),
+        z=pframe["PC3"].to_numpy(), mode="markers", marker={"size": 2.5, "opacity": .4,
+        "color": pframe["cluster"].to_numpy(), "colorscale": "Turbo"}))
+    fig_pca.update_layout(title=f"PCA 3D + KMeans exploratório (k={best_k})", height=600)
+    mo.vstack([mo.md("## 5. PCA e clustering"),
+               mo.hstack([mo.ui.table(variance), mo.ui.table(cluster_metrics)], widths="equal"), fig_pca,
+               mo.md("k maximiza silhouette entre 2–6, contrastado por Davies–Bouldin e Calinski–Harabasz. Clusters descrevem geometria; não são segmentos de ouvintes.")])
+    return
+
+
+@app.cell
+def _(Treemap, db, mo):
+    leaves = db.execute("""
+      WITH g AS (SELECT track_genre, dense_rank() OVER (ORDER BY count(DISTINCT track_id) DESC) rg
+        FROM track_genres GROUP BY 1),
+      a AS (SELECT tg.track_genre, ta.artist, dense_rank() OVER
+        (PARTITION BY tg.track_genre ORDER BY count(DISTINCT tg.track_id) DESC) ra
+        FROM track_genres tg JOIN track_artists ta USING(track_id) JOIN g USING(track_genre)
+        WHERE rg<=5 GROUP BY 1,2),
+      x AS (SELECT tg.track_genre, ta.artist, t.track_name, t.track_id, t.popularity,
+        row_number() OVER (PARTITION BY tg.track_genre,ta.artist ORDER BY t.popularity DESC,t.track_id) rt
+        FROM track_genres tg JOIN track_artists ta USING(track_id) JOIN tracks t USING(track_id)
+        JOIN a ON a.track_genre=tg.track_genre AND a.artist=ta.artist WHERE a.ra<=6)
+      SELECT * FROM x WHERE rt<=8 ORDER BY 1,2,5 DESC""").pl()
+    paths = {f"{r['track_genre']} › {r['artist']} › {r['track_name']} [{r['track_id'][:6]}]":
+             max(float(r["popularity"]), 1) for r in leaves.iter_rows(named=True)}
+    tree = mo.ui.anywidget(Treemap.from_paths(paths, sep=" › ", root_name="catálogo selecionado",
+                                              width="100%", height=560, max_depth=3))
+    mo.vstack([mo.md("## 6. Treemap: gênero → artista → faixa"), tree,
+               mo.md("Top 5 gêneros, 6 artistas/gênero e 8 faixas/artista. Área = popularidade (mínimo visual 1); cor = ramo hierárquico. A mesma faixa pode pertencer a múltiplos gêneros.")])
+    return
+
+
+@app.cell
+def _(db, go, np):
+    overlap = db.execute("""WITH top AS (SELECT track_genre FROM track_genres GROUP BY 1
+      ORDER BY count(DISTINCT track_id) DESC LIMIT 15)
+      SELECT a.track_genre s,b.track_genre t,count(DISTINCT a.track_id) w
+      FROM track_genres a JOIN track_genres b USING(track_id)
+      JOIN top x ON x.track_genre=a.track_genre JOIN top y ON y.track_genre=b.track_genre GROUP BY 1,2""").pl()
+    names = sorted(set(overlap["s"].to_list())); lookup = {(r["s"],r["t"]):r["w"] for r in overlap.iter_rows(named=True)}
+    matrix = np.array([[lookup.get((a,b),0) for b in names] for a in names])
+    heatmap = go.Figure(go.Heatmap(z=matrix, x=names, y=names, colorscale="Blues"))
+    heatmap.update_layout(title="Sobreposição dos 15 maiores gêneros", height=560)
+    edges = db.execute("""SELECT ta.artist,tg.track_genre,count(DISTINCT tg.track_id) w
+      FROM track_artists ta JOIN track_genres tg USING(track_id) GROUP BY 1,2 ORDER BY w DESC LIMIT 30""").pl()
+    an = ["artista: "+x for x in sorted(set(edges["artist"].to_list()))]
+    gn = ["gênero: "+x for x in sorted(set(edges["track_genre"].to_list()))]
+    nodes=an+gn; ix={x:i for i,x in enumerate(nodes)}
+    sankey=go.Figure(go.Sankey(node={"label":nodes},link={
+      "source":[ix["artista: "+r["artist"]] for r in edges.iter_rows(named=True)],
+      "target":[ix["gênero: "+r["track_genre"]] for r in edges.iter_rows(named=True)],"value":edges["w"].to_list()}))
+    sankey.update_layout(title="30 maiores arestas artista–gênero",height=620)
+    return heatmap, sankey
+
+
+@app.cell
+def _(heatmap, mo, sankey):
+    mo.vstack([mo.md("## 7. Grafos derivados — sem graph database"), heatmap, sankey,
+               mo.md("A matriz mostra faixas compartilhadas; o Sankey limitado revela hubs sem renderizar a rede completa.")])
+    return
+
+
+@app.cell
+def _(GroupShuffleSplit, HistGradientBoostingRegressor, ShuffleSplit, db, features,
+      mean_absolute_error, mean_squared_error, np, pl, r2_score, tracks):
+    primary = db.execute("SELECT track_id,min_by(artist,artist_position) primary_artist FROM track_artists GROUP BY 1").pl()
+    mf = tracks.select(["track_id","popularity","genre_count",*features]).join(primary,on="track_id").drop_nulls()
+    mf = mf.sample(n=min(45_000,mf.height),seed=2026)
+    def evaluate(train_i,test_i,split,repeat):
+        train,test=mf[train_i],mf[test_i]
+        stats=train.group_by("primary_artist").agg(pl.len().alias("artist_catalogue_size"))
+        train=train.join(stats,on="primary_artist"); test=test.join(stats,on="primary_artist",how="left").with_columns(pl.col("artist_catalogue_size").fill_null(0))
+        yt,yv=train["popularity"].to_numpy(),test["popularity"].to_numpy()
+        preds={"baseline_mediana":np.full(len(yv),np.median(yt))}
+        for name,cols in {"audio":features,"audio+grafo":[*features,"genre_count","artist_catalogue_size"]}.items():
+            model=HistGradientBoostingRegressor(max_iter=140,max_leaf_nodes=24,random_state=2026)
+            model.fit(train.select(cols).to_numpy(),yt); preds[name]=model.predict(test.select(cols).to_numpy())
+        return [{"split":split,"repetição":repeat,"modelo":n,"MAE":mean_absolute_error(yv,p),
+                 "RMSE":mean_squared_error(yv,p)**.5,"R2":r2_score(yv,p)} for n,p in preds.items()]
+    _model_rows=[]
+    _grouped_split=GroupShuffleSplit(n_splits=5,test_size=.2,random_state=2026)
+    for i,(a,b) in enumerate(_grouped_split.split(mf,groups=mf["primary_artist"].to_numpy()),1): _model_rows+=evaluate(a,b,"artista agrupado",i)
+    for a,b in ShuffleSplit(n_splits=1,test_size=.2,random_state=2026).split(mf): _model_rows+=evaluate(a,b,"aleatório (diagnóstico)",1)
+    results=pl.DataFrame(_model_rows)
+    summary=results.group_by(["split","modelo"]).agg(pl.mean("MAE").alias("MAE_média"),
+      pl.quantile("MAE",.1).alias("MAE_p10"),pl.quantile("MAE",.9).alias("MAE_p90"),
+      pl.mean("RMSE").alias("RMSE_média"),pl.mean("R2").alias("R2_médio")).sort(["split","MAE_média"]).with_columns(pl.all().exclude(["split","modelo"]).round(3))
+    return results, summary
+
+
+@app.cell
+def _(go, mo, results, summary):
+    _grouped_results=results.filter(results["split"]=="artista agrupado")
+    fig=go.Figure()
+    for name in sorted(_grouped_results["modelo"].unique().to_list()):
+        fig.add_trace(go.Box(y=_grouped_results.filter(_grouped_results["modelo"]==name)["MAE"].to_list(),name=name,boxpoints="all"))
+    fig.update_layout(title="MAE em cinco splits por artista",yaxis_title="MAE (menor é melhor)",height=440)
+    mo.vstack([mo.md("## 8. Experimento preditivo validado"),mo.ui.table(summary),fig,
+      mo.md("Target: popularidade contínua. Split principal agrupa artistas; aleatório é diagnóstico. `audio+grafo` adiciona número de gêneros e tamanho do catálogo do artista calculado só no treino. Ganho instável é resultado inconclusivo.")])
+    return
+
+
+@app.cell
+def _(mo, pl):
+    scorecard=pl.DataFrame({"frente":["qualidade","EDA","clustering","grafos","predição"],
+      "claim permitido":["descrever conflitos","associação no catálogo","geometria exploratória","sobreposição/hubs","generalização a artistas não vistos"],
+      "não alegar":["ausência de viés","causalidade","segmentos naturais","influência social","próximo hit"]})
+    mo.vstack([mo.md("## 9. Scorecard e próximos caminhos"),mo.ui.table(scorecard),mo.md("""
+    - Quais relações persistem dentro de gênero?
+    - A massa de popularidade zero varia por gênero, artista ou conflito de duplicação?
+    - Clusters são estáveis a seed, amostra e algoritmo?
+    - Quais overlaps permanecem após normalização Jaccard/cosseno?
+    - Features de grafo melhoram consistentemente o held-out por artista?
+    - Como definições globais e intragênero de “alta popularidade” mudam a leitura?
+
+    O lock de claims deve seguir este scorecard, não o gráfico mais chamativo.
+    """)])
     return
 
 

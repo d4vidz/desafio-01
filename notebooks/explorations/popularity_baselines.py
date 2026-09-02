@@ -7,16 +7,18 @@ app = marimo.App(width="medium")
 
 @app.cell
 def _():
+    import sys
     from pathlib import Path
+    _repo_root = Path(__file__).resolve().parents[2]
+    if str(_repo_root) not in sys.path:
+        sys.path.insert(0, str(_repo_root))
 
-    import duckdb
     import marimo as mo
     import polars as pl
     from sklearn.compose import ColumnTransformer
-    from sklearn.impute import SimpleImputer
     from sklearn.linear_model import LogisticRegression
     from sklearn.metrics import average_precision_score, roc_auc_score
-    from sklearn.model_selection import train_test_split
+    from sklearn.model_selection import GroupShuffleSplit
     from sklearn.pipeline import Pipeline
     from sklearn.preprocessing import OneHotEncoder, StandardScaler
 
@@ -26,14 +28,12 @@ def _():
         OneHotEncoder,
         Path,
         Pipeline,
-        SimpleImputer,
         StandardScaler,
+        GroupShuffleSplit,
         average_precision_score,
-        duckdb,
         mo,
         pl,
         roc_auc_score,
-        train_test_split,
     )
 
 
@@ -45,33 +45,13 @@ def _(Path, mo):
 
 
 @app.cell
-def _(csv_path, duckdb):
-    connection = duckdb.connect(":memory:")
-    connection.execute(
-        """
-        CREATE TEMP TABLE tracks AS
-        SELECT
-            track_id,
-            any_value(track_genre) AS display_genre,
-            median(popularity) AS popularity,
-            any_value(danceability) AS danceability,
-            any_value(energy) AS energy,
-            any_value(loudness) AS loudness,
-            any_value(speechiness) AS speechiness,
-            any_value(acousticness) AS acousticness,
-            any_value(instrumentalness) AS instrumentalness,
-            any_value(liveness) AS liveness,
-            any_value(valence) AS valence,
-            any_value(tempo) AS tempo,
-            any_value(duration_ms) AS duration_ms,
-            any_value(explicit) AS explicit
-        FROM read_csv_auto(?, sample_size=-1, nullstr='')
-        WHERE track_id IS NOT NULL
-        GROUP BY track_id
-        """,
-        [str(csv_path)],
-    )
-    model_frame = connection.execute("SELECT * FROM tracks").pl()
+def _(csv_path):
+    from spotify_data import build_duckdb_layer
+    connection = build_duckdb_layer(csv_path)
+    model_frame = connection.execute("""
+      SELECT t.*, min_by(a.artist, a.artist_position) AS primary_artist
+      FROM tracks t JOIN track_artists a USING (track_id) GROUP BY ALL
+    """).pl()
     return (model_frame,)
 
 
@@ -88,15 +68,14 @@ def _(
     LogisticRegression,
     OneHotEncoder,
     Pipeline,
-    SimpleImputer,
     StandardScaler,
+    GroupShuffleSplit,
     average_precision_score,
     model_frame,
     mo,
     pl,
     roc_auc_score,
     run_models,
-    train_test_split,
 ):
     mo.stop(not run_models.value, mo.md("Choose **Run baseline comparison** to train the bounded exploratory models."))
     numeric_features = [
@@ -105,15 +84,17 @@ def _(
     ]
     target_cutoff = float(model_frame.get_column("popularity").quantile(0.75))
     experiment_data = model_frame.with_columns((pl.col("popularity") >= target_cutoff).alias("high_popularity"))
-    train_data, test_data = train_test_split(experiment_data.to_pandas(), test_size=0.25, random_state=2026, stratify=experiment_data.get_column("high_popularity").to_list())
-    numeric_pipeline = Pipeline([("impute", SimpleImputer(strategy="median")), ("scale", StandardScaler())])
+    splitter = GroupShuffleSplit(n_splits=1, test_size=0.25, random_state=2026)
+    train_idx, test_idx = next(splitter.split(experiment_data, groups=experiment_data["primary_artist"].to_numpy()))
+    train_data, test_data = experiment_data[train_idx], experiment_data[test_idx]
+    numeric_pipeline = Pipeline([("scale", StandardScaler())])
     feature_sets = {
         "audio only": (numeric_features, numeric_pipeline),
-        "audio plus display genre": (
-            numeric_features + ["display_genre"],
+        "audio plus representative genre": (
+            numeric_features + ["representative_track_genre"],
             ColumnTransformer([
                 ("audio", numeric_pipeline, numeric_features),
-                ("genre", OneHotEncoder(handle_unknown="ignore"), ["display_genre"]),
+                ("genre", OneHotEncoder(handle_unknown="ignore"), ["representative_track_genre"]),
             ]),
         ),
     }
@@ -127,8 +108,8 @@ def _(
             "roc_auc": roc_auc_score(test_data["high_popularity"], probabilities),
             "average_precision": average_precision_score(test_data["high_popularity"], probabilities),
             "target_cutoff": target_cutoff,
-            "train_rows": len(train_data),
-            "test_rows": len(test_data),
+            "train_rows": train_data.height,
+            "test_rows": test_data.height,
         })
     baseline_results = pl.DataFrame(baseline_rows).with_columns(pl.col(["roc_auc", "average_precision", "target_cutoff"]).round(4))
     return baseline_results, target_cutoff
@@ -137,7 +118,7 @@ def _(
 @app.cell
 def _(baseline_results, mo, target_cutoff):
     mo.vstack([
-        mo.md(f"## Baseline association models\n\nThe target is popularity at or above the 75th-percentile cutoff (**{target_cutoff:.1f}**). This is a reproducible comparison of observable catalogue patterns, not a time-aware prediction of future hits."),
+        mo.md(f"## Secondary threshold-sensitivity lens\n\nThe target is popularity at or above the global 75th-percentile cutoff (**{target_cutoff:.1f}**). Artists are kept together across train/test. This secondary classification lens does not replace the continuous grouped regression in the final notebook and is not a time-aware prediction of future hits."),
         mo.ui.table(baseline_results),
         mo.md("Use this notebook to decide whether a genre-aware baseline adds measurable held-out value before considering more complex models. Do not move a result into the final notebook without reviewing leakage, stability, and interpretation."),
     ])
