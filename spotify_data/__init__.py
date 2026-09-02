@@ -15,6 +15,30 @@ from .data_contract import (
     validate_clean_schema,
     validate_source_schema,
 )
+from .data_layer import (
+    CONTRACT_VERSION,
+    DataContractReport,
+    DataLayer,
+    build_data_layer,
+    canonical_file_sha256,
+    contract_capsule,
+)
+from .feature_views import (
+    CATEGORICAL_FEATURES,
+    CONTINUOUS_AUDIO_FEATURES,
+    HUMAN_AUDIO_FEATURES,
+    HUMAN_PANEL,
+    STRUCTURE_POOL,
+    FeatureViewSpec,
+    add_semantic_features,
+    feature_columns,
+    fit_genre_ppmi,
+    genre_audio_profiles,
+    genre_membership_matrix,
+    robust_pca_profiles,
+)
+from .statistics import bh_fdr, holm_adjust, random_effects_pool
+from .clustering import clustering_stability
 
 __all__ = [
     "IMPUTATION_POLICY",
@@ -30,4 +54,26 @@ __all__ = [
     "validate_repeated_track_fields",
     "validate_clean_schema",
     "validate_source_schema",
+    "CONTRACT_VERSION",
+    "DataContractReport",
+    "DataLayer",
+    "build_data_layer",
+    "canonical_file_sha256",
+    "contract_capsule",
+    "CATEGORICAL_FEATURES",
+    "CONTINUOUS_AUDIO_FEATURES",
+    "HUMAN_AUDIO_FEATURES",
+    "HUMAN_PANEL",
+    "STRUCTURE_POOL",
+    "FeatureViewSpec",
+    "add_semantic_features",
+    "feature_columns",
+    "fit_genre_ppmi",
+    "genre_audio_profiles",
+    "genre_membership_matrix",
+    "robust_pca_profiles",
+    "bh_fdr",
+    "holm_adjust",
+    "random_effects_pool",
+    "clustering_stability",
 ]

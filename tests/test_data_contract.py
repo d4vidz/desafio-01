@@ -10,6 +10,8 @@ from spotify_data import (
     RAW_COLUMNS,
     RAW_SCHEMA,
     build_duckdb_layer,
+    build_data_layer,
+    canonical_file_sha256,
     clean_source_rows,
     load_tracks_raw,
     missing_identifier_counts,
@@ -182,3 +184,15 @@ def test_no_imputation_policy_is_declared_and_raw_nulls_are_preserved():
     assert "No imputation" in IMPUTATION_POLICY
     assert frame.get_column("track_name").null_count() == 1
     assert load_tracks_raw(CSV_PATH).get_column("artists").null_count() == 1
+
+
+def test_data_layer_facade_report_is_reproducible_and_does_not_persist_database():
+    first = build_data_layer(CSV_PATH)
+    second = build_data_layer(CSV_PATH)
+    assert first.report.source_sha256 == second.report.source_sha256 == canonical_file_sha256(CSV_PATH)
+    assert first.report.contract_version == "0.1"
+    assert first.report.counts == second.report.counts
+    assert first.report.removals == {"missing_identifier_rows": 1, "exact_duplicates": 450, "total": 451}
+    assert first.report.conflicts["popularity"] == 720
+    assert first.report.conflicts["canonical_metadata"] == 0
+    assert first.report.ranges["sentinel_counts"]["time_signature_outside_3_7"] > 0
