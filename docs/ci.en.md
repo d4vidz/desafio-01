@@ -21,6 +21,8 @@ Pipelines [#2811912477](https://gitlab.com/residencia-em-ia/desafio-01/-/pipelin
 
 To unblock CI, the account that triggers the pipeline must complete GitLab's required verification and create a new pipeline for the current SHA. Until then, run locally:
 
+After verification, pipeline [#2813599791](https://gitlab.com/residencia-em-ia/desafio-01/-/pipelines/2813599791) ran and exposed a real portability failure: the test compared CRLF bytes from the Windows checkout with LF bytes from the Linux runner. The fix adds an LF rule in `.gitattributes` and compares SHA-256 over canonical text content. The versioned CSV and its values were not changed.
+
 ```bash
 uv sync --frozen
 uv run python scripts/check_translation_pairs.py

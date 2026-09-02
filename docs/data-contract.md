@@ -16,6 +16,11 @@ exclusivamente para auditoria da linha de origem. O carregador tipado declara o
 schema restante em `spotify_data/data_contract.py`; não depende de
 autodetecção.
 
+O arquivo é versionado com finais de linha LF por `.gitattributes`. O teste de
+imutabilidade usa SHA-256 do conteúdo textual canônico (CRLF normalizado para
+LF), evitando falsos negativos entre checkouts Windows e Linux sem ignorar
+qualquer alteração real de conteúdo.
+
 Campos vazios do CSV tornam-se nulos. Nenhum valor é preenchido.
 `load_tracks_raw` valida nomes, ordem e tipos antes de qualquer transformação.
 

@@ -10,6 +10,8 @@ This contract keeps the Spotify analysis reproducible and prevents accidental mi
 
 The expected source is `data/raw/spotify_tracks.csv`. It is the authoritative input for each run and must be preserved unchanged. The first CSV field has an empty header and is exposed as `source_row_id`, solely for source-row auditing. The typed loader declares the remaining schema in `spotify_data/data_contract.py`; it does not rely on auto-detection.
 
+The file is versioned with LF line endings through `.gitattributes`. The immutability test uses SHA-256 over canonical text content (normalizing CRLF to LF), preventing false failures between Windows and Linux checkouts without ignoring any real content change.
+
 Empty CSV fields become nulls. No values are filled. `load_tracks_raw` validates names, order, and types before any transformation.
 
 The project does not persist an analytical database. At runtime, create `duckdb.connect(":memory:")`, load the CSV into temporary or session-scoped tables, and rebuild those tables after every restart. Persistent `.duckdb`, `.db`, or materialized database files are out of scope.

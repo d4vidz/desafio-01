@@ -21,6 +21,8 @@ Os pipelines [#2811912477](https://gitlab.com/residencia-em-ia/desafio-01/-/pipe
 
 Para destravar o CI, a conta que dispara o pipeline deve concluir a verificação exigida pelo GitLab e criar um novo pipeline para o SHA atual. Enquanto isso, execute localmente:
 
+Depois da verificação, o pipeline [#2813599791](https://gitlab.com/residencia-em-ia/desafio-01/-/pipelines/2813599791) executou e expôs uma falha real de portabilidade: o teste comparava bytes CRLF do checkout Windows com bytes LF do runner Linux. A correção adiciona uma regra LF em `.gitattributes` e compara o SHA-256 do conteúdo textual canônico. O CSV versionado e seus valores não foram alterados.
+
 ```bash
 uv sync --frozen
 uv run python scripts/check_translation_pairs.py

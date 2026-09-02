@@ -15,7 +15,7 @@
     {
       "canonical": "docs/data-contract.md",
       "translation": "docs/data-contract.en.md",
-      "canonical_sha256": "271e6b9033dbe547205d757b3b789be5e1c0c9644bc6e053e8eb800dd184535d"
+      "canonical_sha256": "f7260461576300a598e06e129e822a70a7544d2513d847c543422d523dee8631"
     },
     {
       "canonical": "docs/governance.md",
@@ -35,7 +35,7 @@
     {
       "canonical": "docs/ci.md",
       "translation": "docs/ci.en.md",
-      "canonical_sha256": "3172408c81200f346c91999d7d02c3eb7dfbd8cd56fccb4f49e5bfc8946fcaca"
+      "canonical_sha256": "32173ca11e64e4c5d08e9b11b263284a6c5e4e14940db48b1e0fe61c08bc7163"
     },
     {
       "canonical": "docs/development.md",

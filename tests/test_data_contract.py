@@ -19,7 +19,7 @@ from spotify_data import (
 
 
 CSV_PATH = Path(__file__).resolve().parents[1] / "data" / "raw" / "spotify_tracks.csv"
-EXPECTED_SHA256 = "4858b1c2426a7c4f7cc580a900e6722e204015f7acde88d3c594abcb8aefccb4"
+EXPECTED_CANONICAL_SHA256 = "1a769bbbbb2fa4451d4309248349799ce8ab5efc21e053e2bb3aa28ddcb53d83"
 
 
 def _synthetic_raw(**overrides: list[object]) -> pl.DataFrame:
@@ -51,7 +51,9 @@ def _synthetic_raw(**overrides: list[object]) -> pl.DataFrame:
 
 
 def test_raw_csv_has_not_been_mutated():
-    assert hashlib.sha256(CSV_PATH.read_bytes()).hexdigest() == EXPECTED_SHA256
+    # An existing Windows checkout may expose CRLF even though Git stores LF.
+    canonical_bytes = CSV_PATH.read_bytes().replace(b"\r\n", b"\n")
+    assert hashlib.sha256(canonical_bytes).hexdigest() == EXPECTED_CANONICAL_SHA256
 
 
 def test_loader_uses_explicit_schema_and_preserves_unnamed_source_index():
