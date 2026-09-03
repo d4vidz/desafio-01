@@ -1,15 +1,27 @@
+# /// script
+# requires-python = ">=3.12"
+# dependencies = [
+#   "duckdb>=1.1,<2", "marimo>=0.14,<1", "matplotlib>=3.9,<4",
+#   "numpy>=2,<3", "pandas>=2.2,<4", "plotly>=5.24,<7", "polars>=1.20,<2",
+#   "pyarrow>=18,<25", "scikit-learn>=1.5,<2", "statsmodels>=0.14,<1",
+#   "wigglystuff>=0.5.21,<0.6",
+# ]
+# ///
+
 """PCA, loadings and stability-gated clustering of the audio space."""
 
 import marimo
 
-__generated_with = "0.20.4"
+__generated_with = "0.24.0"
 app = marimo.App(width="full")
 
 
 @app.cell
 def _():
+    from hashlib import sha256
     import sys
     from pathlib import Path
+    from urllib.request import urlretrieve
     from zipfile import ZipFile
 
     root = Path.cwd()
@@ -18,7 +30,22 @@ def _():
         with ZipFile(bundle_path) as bundle:
             bundle.extractall(root)
     if not (root / "spotify_data").exists():
+        snapshot = "0ac3efc5133fa6481519a2a373134c9e6f50689c"
+        snapshot_root = root / f"desafio-01-{snapshot}"
+        if not snapshot_root.exists():
+            archive_path = root / f"desafio-01-{snapshot}.zip"
+            urlretrieve(f"https://github.com/d4vidz/desafio-01/archive/{snapshot}.zip", archive_path)
+            with ZipFile(archive_path) as archive:
+                archive.extractall(root)
+        root = snapshot_root
+    if not (root / "spotify_data").exists():
         root = Path(__file__).resolve().parents[2]
+    csv_snapshot = root / "data" / "raw" / "spotify_tracks.csv"
+    expected_source = "1a769bbbbb2fa4451d4309248349799ce8ab5efc21e053e2bb3aa28ddcb53d83"
+    if csv_snapshot.exists():
+        observed_source = sha256(csv_snapshot.read_bytes().replace(b"\r\n", b"\n")).hexdigest()
+        if observed_source != expected_source:
+            raise RuntimeError("O snapshot Molab não corresponde ao hash canônico do CSV.")
     if str(root) not in sys.path:
         sys.path.insert(0, str(root))
     import marimo as mo
