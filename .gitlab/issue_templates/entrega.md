@@ -20,6 +20,16 @@ Qual pergunta ou especificação esta entrega atende?
 
 Descreva a abordagem, incluindo decisões relevantes de schema, DuckDB/Polars, modelagem ou visualização.
 
+## Comunicação planejada
+
+- Público que deve entender a entrega:
+- Pergunta em linguagem comum:
+- Como explicar o grain, a população e os encodings:
+- Como o resultado será calculado dinamicamente:
+- Termos do [glossário](../../docs/glossary.md):
+- Claim ceiling e caveats:
+- Status da evidência: `infraestrutura` · `protótipo` · `experimento_completo` · `evidência_validada`
+
 ## Saídas esperadas
 
 - Código/notebook/documentação:
@@ -34,6 +44,8 @@ Descreva a abordagem, incluindo decisões relevantes de schema, DuckDB/Polars, m
 - [ ] Claims têm interpretação, incerteza e caveats.
 - [ ] Testes/checks executados estão registrados.
 - [ ] As issues relacionadas e os desvios da especificação estão atualizados.
+- [ ] A comunicação nasceu junto da implementação e é suficiente sem contexto prévio.
+- [ ] O status da evidência e o claim ceiling aparecem no notebook e no HTML.
 
 ## Validação executada
 

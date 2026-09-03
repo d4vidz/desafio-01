@@ -29,6 +29,14 @@ Descreva as mudanças em DuckDB, Polars, Marimo, modelagem, visualização ou do
 - Claim que não pode ser feito:
 - Incerteza, caveats e resultado inconclusivo:
 
+## Comunicação e handoff agêntico
+
+- Público e pergunta em linguagem comum:
+- Como ler as visualizações e widgets:
+- Status da evidência e claim ceiling:
+- Índice Luna → Sol (issues, commits, paths, artefatos, testes, riscos e follow-ups):
+- Leitor sem contexto revisou? Resultado:
+
 ## Validação executada
 
 ```text
@@ -49,3 +57,6 @@ Acrescente comandos específicos, fixtures, métricas e resultados relevantes.
 - [ ] Claims não excedem a evidência; caveats estão registrados.
 - [ ] Documentação em português foi atualizada e a tradução correspondente foi sincronizada.
 - [ ] Mudanças de escopo têm registro e aprovação.
+- [ ] A documentação nasce junto da implementação; não é apenas cleanup posterior.
+- [ ] O índice de entrega é endereçável e não contém segredos.
+- [ ] Findings Luna/Sol e sua revalidação estão registrados quando aplicável.

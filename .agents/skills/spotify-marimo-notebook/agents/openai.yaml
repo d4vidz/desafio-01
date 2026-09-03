@@ -1,0 +1,7 @@
+interface:
+  display_name: "Spotify Marimo notebook"
+  short_description: "Build explainable Spotify Marimo notebooks"
+  default_prompt: "Use $spotify-marimo-notebook to create or review a reproducible, clearly explained Spotify Marimo notebook."
+  brand_color: "#1DB954"
+policy:
+  allow_implicit_invocation: true

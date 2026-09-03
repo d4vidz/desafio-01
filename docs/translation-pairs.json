@@ -5,7 +5,7 @@
     {
       "canonical": "README.md",
       "translation": "README.en.md",
-      "canonical_sha256": "6801b7c2d759c6a0a7758e31b1487b0d64fe1a7694b357eee6910c7c52201281"
+      "canonical_sha256": "02186e88483b75b5d55d91b72066004c4b7b70c1159f85223e56180152902d73"
     },
     {
       "canonical": "docs/contributing.md",
@@ -45,7 +45,7 @@
     {
       "canonical": "docs/team-next-steps.md",
       "translation": "docs/team-next-steps.en.md",
-      "canonical_sha256": "45031591893afaaea06fc7db6f08fa2be79afc221de0a3daf91491fbbd34a3e7"
+      "canonical_sha256": "dfea6a6086b19af91a2d48165554ae0f43b30e999c67d5f531ccbe4f682ca60c"
     },
     {
       "canonical": "docs/molab-notebooks.md",
@@ -56,6 +56,26 @@
       "canonical": "docs/categorical-representation.md",
       "translation": "docs/categorical-representation.en.md",
       "canonical_sha256": "a63498f51df1dd56011bd8376c7437266726aac05f7dd7cc63284ff8fbdadf03"
+    },
+    {
+      "canonical": "AGENTS.md",
+      "translation": "AGENTS.en.md",
+      "canonical_sha256": "9cf76a1d7ba8b30ef57e52eb576911052cea786c78a4ee2058070258cf3f9fd7"
+    },
+    {
+      "canonical": "docs/notebook-communication.md",
+      "translation": "docs/notebook-communication.en.md",
+      "canonical_sha256": "d219fa640af5b5b6017a7db275f19b49398475c29438c2f1e6eb1c1b063a9ea4"
+    },
+    {
+      "canonical": "docs/agent-review.md",
+      "translation": "docs/agent-review.en.md",
+      "canonical_sha256": "fe9de4407f55d6c84f5a8dece4864d7a1ff42ebc23598e74cbae4efb8c680130"
+    },
+    {
+      "canonical": "docs/glossary.md",
+      "translation": "docs/glossary.en.md",
+      "canonical_sha256": "329049f6764540e30806256f1dfe49f6b31feefbd8f415fefc0f34a86cca1603"
     }
   ]
 }

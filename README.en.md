@@ -17,10 +17,15 @@ docs/development.en.md            # local environment, Molab, and agent pairing
 docs/ci.en.md                     # pipeline diagnosis and incident log
 docs/team-next-steps.en.md        # team starting point and handoff
 docs/molab-notebooks.en.md        # Molab publication, links, and verification
+docs/notebook-communication.en.md # required narrative contract (#69)
+docs/agent-review.en.md           # Luna handoff and Sol audit (#68)
+docs/glossary.en.md               # analytical vocabulary for readers
+AGENTS.en.md                      # mandatory rules for agents
 notebooks/data_contract_audit.py  # only detailed contract audit
 notebooks/explorations/           # associations, genre, structure, validation
 notebooks/spotify_analysis.py    # final integrator with curated evidence
 artifacts/notebooks/html/         # reviewable static HTML snapshots
+artifacts/notebooks/manifest.json # hashes, environment, execution, maturity
 tests/                            # focused tests, when added
 pyproject.toml                   # dependencies and project tooling
 scripts/render_notebooks.py       # deterministic snapshot renderer
@@ -47,7 +52,8 @@ uv run pytest
 
 The renderer executes all six canonical notebooks and saves HTML with source
 code included under `artifacts/notebooks/html/`. These snapshots are committed
-for quick review on every commit that changes a notebook. Do not commit
+for quick review on every commit that changes a notebook; the manifest records
+the source, environment, configuration, execution status, and warnings. Do not commit
 exports outside this directory, DuckDB files, caches, or unbounded payloads.
 
 The input file is expected at `data/raw/spotify_tracks.csv`. The notebook should fail with a clear missing-file error if it is not present; do not silently download, synthesize, or replace the source data.
@@ -70,12 +76,15 @@ The measured rationale for the ephemeral DuckDB layer is in [docs/duckdb-benchma
 
 Every chart must identify its question, unit of analysis, aggregation, and relevant caveat. Outputs should be bounded and readable in Marimo; avoid displaying full tables or raw graph objects. Genre charts must show sparse-group handling and clarify whether multi-genre tracks contribute to multiple groups. Treemaps and networks are allowed only when the hierarchy or edges represent a meaningful relationship—for example, `genre → artist → track` or an aggregated genre-overlap network.
 
+The complete communication contract is in [docs/notebook-communication.en.md](docs/notebook-communication.en.md). The question, reading instructions, computed result, evidence status, and claim ceiling must be created in the same change as the visualization; they are not a later editorial cleanup.
+
 ## Contributing
 
 Start with the existing GitLab guide questions, then open a focused issue for the concrete analysis or engineering deliverable. Link the issue to its question, grain, method, expected artifact, caveats, and definition of done. Keep exploratory claims descriptive unless a validated target and held-out evaluation support a predictive claim. Full workflow details are in [docs/contributing.en.md](docs/contributing.en.md).
 
 Git conventions are documented in [docs/branching.en.md](docs/branching.en.md).
 Environment and local/Molab usage are in [docs/development.en.md](docs/development.en.md); the operational team handoff is in [docs/team-next-steps.en.md](docs/team-next-steps.en.md).
+High-risk agent deliveries follow [docs/agent-review.en.md](docs/agent-review.en.md) and the short rules in [AGENTS.en.md](AGENTS.en.md).
 
 ## Current scope and next paths
 

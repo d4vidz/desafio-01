@@ -17,10 +17,15 @@ docs/development.md               # ambiente local, Molab e pareamento com agent
 docs/ci.md                        # diagnóstico e registro de pipelines
 docs/team-next-steps.md           # ponto de partida e handoff do time
 docs/molab-notebooks.md           # publicação, links e verificação Molab
+docs/notebook-communication.md    # contrato narrativo obrigatório (#69)
+docs/agent-review.md              # handoff Luna e auditoria Sol (#68)
+docs/glossary.md                  # vocabulário analítico para leitores
+AGENTS.md                         # regras obrigatórias para agentes
 notebooks/data_contract_audit.py  # auditoria detalhada do contrato
 notebooks/explorations/           # associações, gênero, estrutura e validação
 notebooks/spotify_analysis.py    # integrador final com evidência curada
 artifacts/notebooks/html/         # snapshots HTML estáticos revisáveis
+artifacts/notebooks/manifest.json # hashes, ambiente, execução e maturidade
 tests/                            # testes focados
 pyproject.toml                   # dependências e ferramentas do projeto
 scripts/render_notebooks.py       # renderização determinística dos snapshots
@@ -47,7 +52,8 @@ uv run pytest
 
 O script de renderização executa os seis notebooks canônicos e salva HTML com
 o código incluído em `artifacts/notebooks/html/`. Esses snapshots são
-versionados para revisão rápida a cada commit que altera notebooks. Não
+versionados para revisão rápida a cada commit que altera notebooks; o manifest
+registra fonte, ambiente, configurações, status e warnings da execução. Não
 versione exports fora dessa pasta, bancos DuckDB, caches ou payloads sem
 limite.
 
@@ -71,12 +77,15 @@ A justificativa medida para a camada efêmera de DuckDB está em [docs/duckdb-be
 
 Todo gráfico deve identificar sua pergunta, unidade de análise, agregação e caveat relevante. Outputs devem ser bounded e legíveis no Marimo; evite exibir tabelas completas ou objetos de grafo brutos. Gráficos por gênero devem mostrar o tratamento de grupos esparsos e esclarecer se faixas com múltiplos gêneros contribuem para vários grupos. Treemaps e redes só são permitidos quando a hierarquia ou as arestas representam uma relação significativa, por exemplo, `genre → artist → track` ou uma rede agregada de sobreposição entre gêneros.
 
+O contrato completo de comunicação está em [docs/notebook-communication.md](docs/notebook-communication.md). A pergunta, a instrução de leitura, o resultado calculado, o status da evidência e o limite do claim devem nascer na mesma alteração que cria a visualização; não são cleanup editorial posterior.
+
 ## Contribuição
 
 Comece pelas guide questions existentes no GitLab e abra uma issue focada para a análise ou entrega de engenharia concreta. Vincule a issue à pergunta, ao grain, ao método, ao artifact esperado, aos caveats e à definition of done. Mantenha claims exploratórios descritivos, salvo quando um target validado e uma avaliação held-out sustentarem um claim preditivo. O fluxo completo está em [docs/contributing.md](docs/contributing.md).
 
 As convenções de Git estão em [docs/branching.md](docs/branching.md).
 O ambiente e o uso local/Molab estão em [docs/development.md](docs/development.md); o handoff operacional do time está em [docs/team-next-steps.md](docs/team-next-steps.md).
+Entregas agênticas de alto risco seguem [docs/agent-review.md](docs/agent-review.md) e as regras curtas de [AGENTS.md](AGENTS.md).
 
 ## Escopo atual e próximos caminhos
 

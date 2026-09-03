@@ -24,12 +24,23 @@ Liste as definições que precisam estar fechadas antes da implementação: grai
 
 Descreva entradas, saídas, invariantes, comportamento esperado para missingness, duplicatas, grupos esparsos e falhas de validação.
 
+## Requisitos de comunicação
+
+Preencha quando a especificação gerar notebook, gráfico, widget, tabela ou relatório:
+
+- Público e pergunta que devem ficar claros:
+- Grain, população e denominadores que devem ser explicados:
+- Encodings, controles e método que precisam de instrução de leitura:
+- Resultado dinâmico, status de evidência e claim ceiling:
+- O que deve permanecer visível no HTML estático:
+
 ## Critérios de aceitação
 
 - [ ] Cada decisão obrigatória está documentada.
 - [ ] O contrato pode ser verificado por teste, consulta ou inspeção reproduzível.
 - [ ] Casos-limite e resultado inconclusivo estão descritos.
 - [ ] A entrega referencia esta especificação e registra seus desvios.
+- [ ] Os requisitos de comunicação são verificáveis por leitura, inspeção ou teste.
 
 ## Validação
 

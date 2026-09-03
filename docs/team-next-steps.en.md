@@ -9,8 +9,9 @@ After the foundation MR reaches `main`, everyone starts by updating `main`, crea
 1. Choose an issue with sufficient scope and acceptance criteria; record a lead and reviewer.
 2. Create `feature/<iid>-<summary>`, `experiment/<iid>-<summary>`, or another branch described in `docs/branching.en.md`.
 3. Use the canonical notebook for the front: `data_contract_audit.py` for the contract, `explorations/popularity_associations.py` for statistical associations, `explorations/genre_representations.py` for genre representations/graphs, `explorations/musical_structure.py` for PCA/clustering, and `explorations/popularity_validation.py` for held-out models. Shared code and data rules belong in modules rather than being duplicated across notebooks.
-4. Record the question, grain, features, split, metrics, expected outputs, and caveats before interpreting results.
-5. Open a Draft MR early, use `Refs #IID`, and do not close the issue before review and its definition of done.
+4. Read `docs/notebook-communication.en.md` and create the narrative section with the analysis: question, grain, population, reading instructions, denominator, dynamic result, status, and claim ceiling.
+5. Record features, split, metrics, expected outputs, and caveats before interpreting results.
+6. Open a Draft MR early, use `Refs #IID`, and do not close the issue before review and its definition of done.
 
 ## Current workstreams
 
@@ -26,3 +27,5 @@ The categorical-representation protocol is now versioned in `docs/categorical-re
 ## Before requesting review
 
 Run the commands in `docs/ci.en.md`, regenerate snapshots with `uv run python scripts/render_notebooks.py`, verify `uv run python scripts/render_notebooks.py --check`, inspect bounded outputs, and write a conclusion that distinguishes association, contemporaneous prediction, and causality. If CI fails, record the pipeline, SHA, jobs, and first trace; a failure with no job is not evidence of broken code. The headless smoke run executes every notebook through a temporary HTML export; reviewable snapshots live under `artifacts/notebooks/html/`.
+
+When an agent executes high-risk work, it must provide the addressable index from `docs/agent-review.en.md`; an independent Sol audit covers the specification, code, analytical validity, and communication before human acceptance.
