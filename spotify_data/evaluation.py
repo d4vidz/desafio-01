@@ -20,6 +20,15 @@ class SplitSpec:
     grouped: bool
 
 
+@dataclass(frozen=True)
+class ModelSummary:
+    """Typed headline metric used by notebook narratives."""
+
+    split: str
+    model: str
+    mae_mean: float
+
+
 SPLITS = (SplitSpec("artista não visto", True), SplitSpec("aleatório diagnóstico", False))
 
 
@@ -88,4 +97,18 @@ def summarize_metrics(results: pl.DataFrame) -> pl.DataFrame:
         )
         .sort(["split", "MAE_medio"])
         .with_columns(pl.all().exclude(["split", "modelo"]).round(3))
+    )
+
+
+def best_model_summary(summary: pl.DataFrame, split: str) -> ModelSummary:
+    """Return the lowest-MAE model without exposing notebook code to schema strings."""
+
+    candidates = summary.filter(pl.col("split") == split).sort("MAE_medio")
+    if candidates.is_empty():
+        raise ValueError(f"No model summary rows for split: {split}")
+    row = candidates.row(0, named=True)
+    return ModelSummary(
+        split=str(row["split"]),
+        model=str(row["modelo"]),
+        mae_mean=float(row["MAE_medio"]),
     )

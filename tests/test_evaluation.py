@@ -1,6 +1,6 @@
 import polars as pl
 
-from spotify_data.evaluation import evaluate_regression, summarize_metrics
+from spotify_data.evaluation import best_model_summary, evaluate_regression, summarize_metrics
 
 
 def test_grouped_evaluation_never_uses_test_artists_in_training_and_is_bounded():
@@ -17,4 +17,8 @@ def test_grouped_evaluation_never_uses_test_artists_in_training_and_is_bounded()
     assert set(results["split"].unique()) == {"artista não visto", "aleatório diagnóstico"}
     grouped = results.filter(pl.col("split") == "artista não visto")
     assert (grouped["train_artists"] + grouped["test_artists"] <= 6).all()
-    assert summarize_metrics(results).height == 6
+    summary = summarize_metrics(results)
+    assert summary.height == 6
+    best = best_model_summary(summary, "artista não visto")
+    assert best.model in {"dummy mediana", "Ridge", "HistGradientBoosting"}
+    assert isinstance(best.mae_mean, float)

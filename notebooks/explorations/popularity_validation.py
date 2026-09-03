@@ -30,9 +30,9 @@ def _():
         build_data_layer,
         render_narrative_section,
     )
-    from spotify_data.evaluation import evaluate_regression, summarize_metrics
+    from spotify_data.evaluation import best_model_summary, evaluate_regression, summarize_metrics
     return (EvidenceStatus, NarrativeSection, Path, add_semantic_features,
-            build_data_layer, evaluate_regression, mo, pl,
+            best_model_summary, build_data_layer, evaluate_regression, mo, pl,
             render_narrative_section, root, summarize_metrics)
 
 
@@ -54,7 +54,7 @@ def _(Path, build_data_layer, mo, root):
 
 
 @app.cell
-def _(EvidenceStatus, NarrativeSection, add_semantic_features, evaluate_regression,
+def _(EvidenceStatus, NarrativeSection, add_semantic_features, best_model_summary, evaluate_regression,
       model_frame, mo, pl, render_narrative_section, summarize_metrics):
     numeric = ["danceability", "energy", "loudness", "speechiness", "acousticness", "instrumentalness", "liveness", "valence", "tempo", "log_duration_ms", "key_sin", "key_cos", "explicit_binary", "mode_binary"]
     prepared = add_semantic_features(model_frame)
@@ -64,7 +64,7 @@ def _(EvidenceStatus, NarrativeSection, add_semantic_features, evaluate_regressi
     results = evaluate_regression(prepared, numeric, repeats=5)
     summary = summarize_metrics(results)
     grouped = summary.filter(pl.col("split") == "artista não visto")
-    best = grouped.sort("MAE_média").row(0, named=True)
+    best = best_model_summary(summary, "artista não visto")
     narrative = NarrativeSection(
         title="Validação preditiva da popularidade observada",
         question="As audio features generalizam para faixas de artistas que não aparecem no treino?",
@@ -73,7 +73,7 @@ def _(EvidenceStatus, NarrativeSection, add_semantic_features, evaluate_regressi
         method="Comparamos uma baseline de mediana e modelos de regressão no split principal por artista não visto; o split aleatório serve apenas como diagnóstico otimista.",
         how_to_read="Compare o MAE entre modelos dentro do split principal: menor erro é melhor. A tabela também mostra RMSE e R² como métricas secundárias.",
         denominator=f"{grouped.height} combinações de modelo no resumo; cinco repetições 80/20 por artista.",
-        result=f"O menor MAE médio observado no split por artista foi {best['MAE_média']:.2f}, para o modelo {best['modelo']}.",
+        result=f"O menor MAE médio observado no split por artista foi {best.mae_mean:.2f}, para o modelo {best.model}.",
         interpretation="Este é um diagnóstico de generalização contemporânea no snapshot, não uma previsão temporal de sucesso futuro.",
         use="Orientar a especificação dos experimentos preditivos e a escolha de ablações que serão validadas em uma entrega posterior.",
         limitation="Ainda faltam bootstrap pareado agrupado, estratos de colaboração e auditoria de fingerprints; portanto este resultado não é evidência preditiva final.",
