@@ -39,6 +39,7 @@ from .feature_views import (
 )
 from .statistics import bh_fdr, holm_adjust, random_effects_pool
 from .clustering import clustering_stability
+from .notebook_ui import EvidenceStatus, NarrativeSection, render_narrative_section
 
 __all__ = [
     "IMPUTATION_POLICY",
@@ -76,4 +77,7 @@ __all__ = [
     "holm_adjust",
     "random_effects_pool",
     "clustering_stability",
+    "EvidenceStatus",
+    "NarrativeSection",
+    "render_narrative_section",
 ]

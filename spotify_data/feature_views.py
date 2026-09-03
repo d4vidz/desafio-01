@@ -74,7 +74,11 @@ def genre_membership_matrix(
 
     ids = [str(value) for value in track_ids]
     selected = track_genres.filter(pl.col("track_id").is_in(ids))
-    vocab = vocabulary or sorted(selected.get_column("track_genre").unique().to_list())
+    vocab = (
+        sorted(selected.get_column("track_genre").unique().to_list())
+        if vocabulary is None
+        else list(vocabulary)
+    )
     index = {genre: i for i, genre in enumerate(vocab)}
     matrix = np.zeros((len(ids), len(vocab)), dtype=np.float32)
     row_index = {track_id: i for i, track_id in enumerate(ids)}
@@ -82,6 +86,24 @@ def genre_membership_matrix(
         if track_id in row_index and genre in index:
             matrix[row_index[track_id], index[genre]] = 1.0
     return matrix, vocab
+
+
+def _ppmi_from_cooccurrence(cooc: np.ndarray) -> np.ndarray:
+    """Return positive PMI from a square co-occurrence count matrix."""
+
+    counts = np.asarray(cooc, dtype=np.float64).copy()
+    np.fill_diagonal(counts, 0)
+    total = counts.sum()
+    if total <= 0:
+        return np.zeros_like(counts)
+    expected = (
+        counts.sum(axis=1, keepdims=True)
+        @ counts.sum(axis=0, keepdims=True)
+    ) / total
+    positive = (counts > 0) & (expected > 0)
+    ppmi = np.zeros_like(counts)
+    ppmi[positive] = np.maximum(np.log(counts[positive] / expected[positive]), 0)
+    return ppmi
 
 
 @dataclass
@@ -121,18 +143,9 @@ def fit_genre_ppmi(
     if not genres:
         return GenrePPMIEmbedding([], np.zeros((0, n_components), dtype=np.float32), n_components, 0.0)
     cooc = incidence.T @ incidence
-    np.fill_diagonal(cooc, 0)
-    total = cooc.sum()
-    if total <= 0:
+    ppmi = _ppmi_from_cooccurrence(cooc)
+    if not np.any(ppmi):
         return GenrePPMIEmbedding(genres, np.zeros((len(genres), n_components), dtype=np.float32), n_components, 0.0)
-    row_mass = cooc.sum(axis=1, keepdims=True)
-    col_mass = cooc.sum(axis=0, keepdims=True)
-    expected = (row_mass @ col_mass) / total
-    ratio = np.ones_like(cooc)
-    positive = (cooc > 0) & (expected > 0)
-    ratio[positive] = cooc[positive] * total / expected[positive]
-    ppmi = np.zeros_like(cooc)
-    ppmi[positive] = np.maximum(np.log(ratio[positive]), 0)
     rank = min(n_components, max(1, min(ppmi.shape) - 1))
     svd = TruncatedSVD(n_components=rank, random_state=2026)
     components = svd.fit_transform(ppmi)

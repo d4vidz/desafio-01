@@ -12,6 +12,7 @@ from hashlib import sha256
 from pathlib import Path
 import os
 import platform
+import subprocess
 import sys
 from typing import Any
 
@@ -79,8 +80,22 @@ class DataLayer:
 
 
 def _revision_metadata() -> dict[str, str | None]:
+    commit = os.environ.get("CI_COMMIT_SHA") or os.environ.get("GIT_COMMIT")
+    if not commit:
+        try:
+            result = subprocess.run(
+                ["git", "rev-parse", "HEAD"],
+                cwd=Path(__file__).resolve().parents[1],
+                capture_output=True,
+                text=True,
+                timeout=5,
+                check=False,
+            )
+            commit = result.stdout.strip() if result.returncode == 0 else None
+        except (OSError, subprocess.TimeoutExpired):
+            commit = None
     return {
-        "git_commit": os.environ.get("CI_COMMIT_SHA") or os.environ.get("GIT_COMMIT"),
+        "git_commit": commit,
         "python": platform.python_version(),
         "platform": platform.platform(),
         "package": "spotify-track-analysis",
@@ -114,11 +129,12 @@ def _make_report(path: str | Path, connection: duckdb.DuckDBPyConnection) -> Dat
         "popularity": int(connection.execute("SELECT COUNT(*) FROM tracks WHERE popularity_conflict").fetchone()[0]),
         "canonical_metadata": int(metadata_conflicts.height),
     }
+    missing_identifier_rows = int(raw.height - raw.filter(
+        pl.all_horizontal(pl.col(column).is_not_null() for column in ("artists", "album_name", "track_name"))
+    ).height)
     removed = {
-        "missing_identifier_rows": int(raw.height - raw.filter(
-            pl.all_horizontal(pl.col(column).is_not_null() for column in ("artists", "album_name", "track_name"))
-        ).height),
-        "exact_duplicates": int(raw.height - 1 - clean.height),
+        "missing_identifier_rows": missing_identifier_rows,
+        "exact_duplicates": int(raw.height - missing_identifier_rows - clean.height),
     }
     removed["total"] = removed["missing_identifier_rows"] + removed["exact_duplicates"]
     invalid_ranges = {

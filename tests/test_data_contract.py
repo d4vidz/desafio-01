@@ -196,3 +196,4 @@ def test_data_layer_facade_report_is_reproducible_and_does_not_persist_database(
     assert first.report.conflicts["popularity"] == 720
     assert first.report.conflicts["canonical_metadata"] == 0
     assert first.report.ranges["sentinel_counts"]["time_signature_outside_3_7"] > 0
+    assert first.report.code_revision["git_commit"]
