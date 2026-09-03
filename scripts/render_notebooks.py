@@ -30,6 +30,33 @@ NOTEBOOKS = (
     ROOT / "notebooks" / "spotify_analysis.py",
 )
 
+NOTEBOOK_METADATA = {
+    "data_contract_audit": (
+        "Spotify — auditoria do contrato de dados",
+        "Reconstrução auditável da camada DuckDB/Polars e de seus grains.",
+    ),
+    "popularity_associations": (
+        "Spotify — associações com popularidade",
+        "Protótipo estatístico de associações com a popularidade observada.",
+    ),
+    "genre_representations": (
+        "Spotify — representações de gênero",
+        "Multi-hot, PPMI/SVD, perfis de áudio e visualizações de gênero.",
+    ),
+    "musical_structure": (
+        "Spotify — estrutura musical",
+        "PCA, loadings e estabilidade de clustering das audio features.",
+    ),
+    "popularity_validation": (
+        "Spotify — validação preditiva",
+        "Protótipo de generalização da popularidade para artistas não vistos.",
+    ),
+    "spotify_analysis": (
+        "Spotify — análise integrada",
+        "Contrato, exploração e protótipos integrados com limites de evidência.",
+    ),
+}
+
 EVIDENCE_STATUS_VALUES = {
     "INFRASTRUCTURE": "infraestrutura",
     "PROTOTYPE": "protótipo",
@@ -56,6 +83,7 @@ def render(notebook: Path, output: Path) -> list[str]:
         "html",
         str(notebook),
         "--include-code",
+        "--no-sandbox",
         "-o",
         str(output),
         "-f",
@@ -197,10 +225,19 @@ def write_manifest(
 
 
 def stamp_snapshot(output: Path, notebook: Path) -> None:
-    """Add a small provenance marker without touching Marimo's generated body."""
+    """Add provenance and reader-facing metadata to Marimo's generated body."""
 
-    marker = f"<!-- canonical-notebook-sha256: {source_digest(notebook)} -->\n".encode()
-    output.write_bytes(marker + output.read_bytes())
+    title, description = NOTEBOOK_METADATA[notebook.stem]
+    body = output.read_text(encoding="utf-8")
+    body = body.replace('<html lang="en">', '<html lang="pt-BR">', 1)
+    body = body.replace(
+        '<meta name="description" content="a marimo app" />',
+        f'<meta name="description" content="{description}" />',
+        1,
+    )
+    body = re.sub(r"<title>.*?</title>", f"<title>{title}</title>", body, count=1)
+    marker = f"<!-- canonical-notebook-sha256: {source_digest(notebook)} -->\n"
+    output.write_text(marker + body, encoding="utf-8")
 
 
 def snapshot_digest(path: Path) -> str | None:

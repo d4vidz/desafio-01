@@ -29,7 +29,7 @@ def main() -> int:
             output = Path(output_dir) / f"notebook-{index}.html"
             print(f"Smoke notebook {index + 1}/{len(NOTEBOOKS)}: {notebook.name}", flush=True)
             result = subprocess.run(
-                [sys.executable, "-m", "marimo", "export", "html", str(notebook), "--no-include-code", "-o", str(output), "-f"],
+                [sys.executable, "-m", "marimo", "export", "html", str(notebook), "--no-include-code", "--no-sandbox", "-o", str(output), "-f"],
                 cwd=ROOT,
                 check=False,
                 capture_output=True,

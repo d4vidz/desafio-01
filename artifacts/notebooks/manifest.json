@@ -6,7 +6,7 @@
     "contract_version": "0.1"
   },
   "repository": {
-    "commit_at_render": "e3232fd2f1d11349cfcee45dd1142178fbbb8168",
+    "commit_at_render": "05dc3f32debc604a7bd600aef2c531d8bd50903c",
     "ref_at_render": "chore/45-versionar-governanca-e-analises",
     "working_tree_dirty_at_render": true,
     "environment_lock_sha256": "0761c9aca2197c990caa146fffc072dfe04a66a59efcbf14f3589114dad3f088"
@@ -19,17 +19,17 @@
   "notebooks": [
     {
       "notebook": "notebooks/data_contract_audit.py",
-      "notebook_sha256": "c87b4eac1751d810b91e613e782be36773fbfbe688e66c111cfd29fd34acd297",
+      "notebook_sha256": "f4c30d33dd40f7cbf6dd802da7ec6b5396bacc21b8eb37a27de7e67d8bdf6ad8",
       "html": "artifacts/notebooks/html/data_contract_audit.html",
-      "html_sha256": "41174cc56288d488723387920f310ff0458b7eef1ab7f23d05646e2cd92b819b",
-      "html_bytes": 120778,
+      "html_sha256": "46a31e80c8f9336daa2dec3979058abf0f25ee8dd2c0d53dbc0c61125eb7869a",
+      "html_bytes": 125747,
       "declared_evidence_statuses": [
         "infraestrutura"
       ],
       "execution_status": "passed",
       "warnings": [],
       "configuration": {
-        "generated_with": "0.20.4",
+        "generated_with": "0.24.0",
         "app_width": "full",
         "declared_integer_seeds": [],
         "output_limit_bytes_per_cell": 5000000
@@ -37,17 +37,17 @@
     },
     {
       "notebook": "notebooks/explorations/popularity_associations.py",
-      "notebook_sha256": "69afcacfc79faf8a11e27609c7bdbcd65c1afee5cd1ef728ce325924fd3cea0f",
+      "notebook_sha256": "9eaa46052b41ffaf27af8fd75b116c11243bcbff3338f23750a79654ad41be92",
       "html": "artifacts/notebooks/html/popularity_associations.html",
-      "html_sha256": "83492c1a460ae989dc2e7570d19f234abd4b7ac90783ad51ce85ed86c321b56e",
-      "html_bytes": 1102408,
+      "html_sha256": "3481872e59f133beefc1f1d49821692de9c3187aa10d77eaed2d39aa866e1670",
+      "html_bytes": 1107268,
       "declared_evidence_statuses": [
         "protótipo"
       ],
       "execution_status": "passed",
       "warnings": [],
       "configuration": {
-        "generated_with": "0.20.4",
+        "generated_with": "0.24.0",
         "app_width": "full",
         "declared_integer_seeds": [],
         "output_limit_bytes_per_cell": 5000000
@@ -55,10 +55,10 @@
     },
     {
       "notebook": "notebooks/explorations/genre_representations.py",
-      "notebook_sha256": "ec41a2cf9a12b419417eed3b6c05919932229a14524753ab7b96f0e4bb9e3319",
+      "notebook_sha256": "84006fb45836362f55637cfaaf28fbaac4d508438f86b020fa67ca8ef07f12b8",
       "html": "artifacts/notebooks/html/genre_representations.html",
-      "html_sha256": "f4fdc0a8ce77aeeb75cf85f629a7625dfd2514f52de09651b84ed4386e49a0b6",
-      "html_bytes": 163721,
+      "html_sha256": "709493060192c05cfe25c7cfed2161258d4e517e98e21f1809f227b2ae3fdc9a",
+      "html_bytes": 168542,
       "declared_evidence_statuses": [
         "infraestrutura",
         "protótipo"
@@ -66,7 +66,7 @@
       "execution_status": "passed",
       "warnings": [],
       "configuration": {
-        "generated_with": "0.20.4",
+        "generated_with": "0.24.0",
         "app_width": "full",
         "declared_integer_seeds": [],
         "output_limit_bytes_per_cell": 5000000
@@ -74,17 +74,17 @@
     },
     {
       "notebook": "notebooks/explorations/musical_structure.py",
-      "notebook_sha256": "f49b0f846b1fb860ce0d7cf1bafdc74d20f10e78c8b89995ce1896a79f83ac45",
+      "notebook_sha256": "57e3a20d0f238b1c8367d4fafe9561505ac14f2390fba0bdedabb32053ed6f20",
       "html": "artifacts/notebooks/html/musical_structure.html",
-      "html_sha256": "b03768eb2b9872c933c02f09423e43b4f1ce6c5f4e7ba3ea4c8f9b23692ec351",
-      "html_bytes": 365557,
+      "html_sha256": "427d7f06244da15d2e06d46cc8150a4b3c019828d6db9e316758d1041f8f9976",
+      "html_bytes": 370510,
       "declared_evidence_statuses": [
         "protótipo"
       ],
       "execution_status": "passed",
       "warnings": [],
       "configuration": {
-        "generated_with": "0.20.4",
+        "generated_with": "0.24.0",
         "app_width": "full",
         "declared_integer_seeds": [
           2026
@@ -94,17 +94,17 @@
     },
     {
       "notebook": "notebooks/explorations/popularity_validation.py",
-      "notebook_sha256": "a64ba689de535a04fa52bdd10db83d552e94a2315a775e70d75baa92d178c9a8",
+      "notebook_sha256": "eb20424ebf546ae0f67b00b3ad1b3143a65e2dba80e47dc8caccc8bc1ed7d1f3",
       "html": "artifacts/notebooks/html/popularity_validation.html",
-      "html_sha256": "699241a4831777dc364998070ac5725619c4f9e0e28bdfc5f33695ce4c353fcc",
-      "html_bytes": 80112,
+      "html_sha256": "4c66949dcbfe232bab2a0245f9d0b26eecbb3982f3435caa19d082b3dd981cdf",
+      "html_bytes": 85075,
       "declared_evidence_statuses": [
         "protótipo"
       ],
       "execution_status": "passed",
       "warnings": [],
       "configuration": {
-        "generated_with": "0.20.4",
+        "generated_with": "0.24.0",
         "app_width": "full",
         "declared_integer_seeds": [
           2026
@@ -114,10 +114,10 @@
     },
     {
       "notebook": "notebooks/spotify_analysis.py",
-      "notebook_sha256": "6ea669d590af87855b6e1de047714c224e09da836192ad8d145968b5e49f9238",
+      "notebook_sha256": "5e20aff5cf808036b9142c7b51d6129981bd15746420e7bcf7e6aade2d6a2e59",
       "html": "artifacts/notebooks/html/spotify_analysis.html",
-      "html_sha256": "d0d43642ea7cb0b5d359660f87eb506acfb3d9af9c93652f5600f49564096b6f",
-      "html_bytes": 6002769,
+      "html_sha256": "2ab1be492e28f6a2f7aede3604d24c23759c67682a6893645dec8af87932122f",
+      "html_bytes": 6006203,
       "declared_evidence_statuses": [
         "infraestrutura",
         "experimento_completo",
@@ -126,7 +126,7 @@
       "execution_status": "passed",
       "warnings": [],
       "configuration": {
-        "generated_with": "0.20.4",
+        "generated_with": "0.24.0",
         "app_width": "full",
         "declared_integer_seeds": [
           2026
