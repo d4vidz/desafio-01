@@ -32,12 +32,22 @@ def _():
     from sklearn.model_selection import GroupShuffleSplit, ShuffleSplit
     from sklearn.preprocessing import StandardScaler
     from wigglystuff import ParallelCoordinates
-    from spotify_data import build_data_layer, build_duckdb_layer, contract_capsule, load_tracks_raw, missing_identifier_counts
-    return (GroupShuffleSplit, HistGradientBoostingRegressor, KMeans, PCA,
+    from spotify_data import (
+        EvidenceStatus,
+        NarrativeSection,
+        build_data_layer,
+        build_duckdb_layer,
+        contract_capsule,
+        load_tracks_raw,
+        missing_identifier_counts,
+        render_narrative_section,
+    )
+    return (EvidenceStatus, GroupShuffleSplit, HistGradientBoostingRegressor, KMeans, NarrativeSection, PCA,
             ParallelCoordinates, Path, ShuffleSplit, StandardScaler,
             build_data_layer, build_duckdb_layer, contract_capsule, calinski_harabasz_score, davies_bouldin_score,
             go, load_tracks_raw, mean_absolute_error, mean_squared_error,
-            missing_identifier_counts, mo, np, pl, r2_score, silhouette_score, repo_root)
+            missing_identifier_counts, mo, np, pl, r2_score, render_narrative_section,
+            repo_root, silhouette_score)
 
 
 @app.cell
@@ -94,11 +104,43 @@ def _(contract_capsule, missing_identifier_counts, pl, report, track_artists, tr
 
 
 @app.cell
-def _(audit, capsule, contract, missing, mo, ranges):
-    mo.vstack([mo.md("## 1. Contrato e qualidade"),
+def _(EvidenceStatus, NarrativeSection, audit, capsule, contract, missing, mo, ranges,
+      render_narrative_section, report, tracks, tracks_clean, tracks_raw):
+    _feature_columns = {
+        "popularity", "duration_ms", "danceability", "energy", "key", "loudness",
+        "mode", "speechiness", "acousticness", "instrumentalness", "liveness",
+        "valence", "tempo", "time_signature",
+    }
+    _feature_missing = sum(
+        item["missing_count"] for item in report.missingness
+        if item["column"] in _feature_columns
+    )
+    _cleanup_summary = (
+        f"`tracks_raw` preserva as {tracks_raw.height:,} linhas para auditoria. "
+        f"`tracks_clean` remove {report.removals['missing_identifier_rows']:,} linha(s) sem identificação "
+        f"e {report.removals['exact_duplicates']:,} duplicata(s) exata(s), além de aparar espaços externos. "
+        f"As features e o target somam {_feature_missing:,} valores ausentes nesta execução; por isso nenhuma imputação real foi aplicada. "
+        "Popularidade divergente é consolidada por mediana, preservando mínimo, máximo, contagem, amplitude e flag."
+    ).replace(",", ".")
+    _contract_narrative = NarrativeSection(
+        title="Contrato e qualidade da camada de dados",
+        question="A base está em condições de sustentar as análises sem esconder perdas, duplicidades ou conflitos?",
+        population="O snapshot CSV completo e as relações reconstruídas em DuckDB",
+        unit="uma linha física, uma faixa canônica ou uma aresta, conforme a tabela",
+        method="Reconstruímos uma camada DuckDB efêmera e comparamos contagens, missingness, ranges, duplicatas, conflitos e grains.",
+        how_to_read="Use a tabela de contrato para distinguir linhas físicas de faixas deduplicadas e arestas; leia os valores junto com seus denominadores.",
+        denominator=f"{tracks_raw.height:,} linhas brutas; tabelas e contagens detalhadas abaixo.".replace(",", "."),
+        result=f"A auditoria reporta {tracks_clean.height:,} linhas limpas e {tracks.height:,} faixas canônicas nesta execução.".replace(",", "."),
+        interpretation="A camada é adequada para análises internas do snapshot, desde que cada notebook respeite o grain escolhido e explicite conflitos e limitações.",
+        use="Servir como ponto de partida comum para todos os notebooks e para a auditoria de reprodutibilidade.",
+        limitation="A proveniência externa permanece incompleta; isso limita claims sobre representatividade, causalidade e comportamento de ouvintes.",
+        status=EvidenceStatus.INFRASTRUCTURE,
+        terms={"Grain": "A unidade que cada linha representa; misturá-la pode duplicar contagens.", "Conflito": "O mesmo track_id aparece com valores divergentes que precisam ser sinalizados."},
+    )
+    mo.vstack([mo.md("## 1. Contrato e qualidade"), render_narrative_section(mo, _contract_narrative),
                mo.ui.table(capsule),
                mo.hstack([mo.ui.table(contract), mo.ui.table(audit)], widths="equal"),
-               mo.md("`tracks_raw` preserva as 114.000 linhas para auditoria. `tracks_clean` reproduz a limpeza revisada: remove a linha sem identificação textual, o índice exportado e 450 duplicatas exatas, além de aparar espaços externos. Há **zero missingness numérico**: imputação inventaria um experimento sem objeto. Popularidade divergente é consolidada por mediana, preservando mínimo, máximo, contagem, amplitude e flag."),
+               mo.md(_cleanup_summary),
                mo.hstack([mo.ui.table(missing), mo.ui.table(ranges)], widths="equal")])
     return
 
@@ -140,8 +182,22 @@ def _(feature_roles, mo):
 
 
 @app.cell
-def _(fig_distribution, mo):
-    mo.vstack([mo.md("## 3. Distribuições e possíveis outliers"), fig_distribution,
+def _(EvidenceStatus, NarrativeSection, fig_distribution, mo, render_narrative_section):
+    _distribution_narrative = NarrativeSection(
+        title="Distribuição de popularidade",
+        question="Como a popularidade observada se distribui entre as faixas canônicas?",
+        population="Faixas canônicas do snapshot", unit="uma faixa canônica",
+        method="Um histograma agrupa os valores observados em intervalos para mostrar concentração, assimetria e caudas.",
+        how_to_read="A altura indica o número de faixas em cada intervalo; não representa ouvintes nem evolução temporal.",
+        denominator="Todas as faixas canônicas disponíveis na camada `tracks`.",
+        result="A forma e as caudas descrevem este snapshot, com zeros e extremos preservados.",
+        interpretation="Valores raros podem ser legítimos ou merecer sensibilidade; raridade isolada não prova erro de inserção.",
+        use="Definir transformações e sensibilidades para as análises estatísticas posteriores.",
+        limitation="O gráfico não identifica causalidade, viés de seleção ou tendência temporal.",
+        status=EvidenceStatus.COMPLETE_EXPERIMENT,
+        terms={"Outlier": "Observação extrema ou rara; não é automaticamente um erro."},
+    )
+    mo.vstack([mo.md("## 3. Distribuições e possíveis outliers"), render_narrative_section(mo, _distribution_narrative), fig_distribution,
                mo.md("Zeros são valores observados, não missingness. Extremos são sinalizados para investigação; não são removidos só por IQR, pois raridade e erro de inserção são conceitos diferentes.")])
     return
 
@@ -168,8 +224,23 @@ def _(color_ctl, go, tracks, x_ctl, y_ctl):
 
 
 @app.cell
-def _(color_ctl, fig_rel, mo, x_ctl, y_ctl):
-    mo.vstack([mo.md("## 4. Relações"), mo.hstack([x_ctl, y_ctl, color_ctl]), fig_rel,
+def _(EvidenceStatus, NarrativeSection, color_ctl, fig_rel, mo, render_narrative_section, x_ctl, y_ctl):
+    _relationship_narrative = NarrativeSection(
+        title="Relação entre características musicais",
+        question="Como duas características selecionadas variam conjuntamente no catálogo?",
+        population="Amostra determinística de até 4.000 faixas canônicas",
+        unit="uma faixa canônica representada por um ponto",
+        method="Um scatter plot compara X e Y; a cor é uma terceira variável escolhida no controle.",
+        how_to_read="Procure padrões gerais, concentração e pontos extremos; a cor ajuda a comparar uma dimensão, mas não prova mecanismo.",
+        denominator="Até 4.000 pontos após remoção de nulos nas colunas selecionadas.",
+        result=f"A visualização atual compara `{x_ctl.value}` com `{y_ctl.value}` e colore por `{color_ctl.value}`.",
+        interpretation="Padrões visuais são hipóteses para testes estatísticos, não evidência confirmatória por si só.",
+        use="Selecionar relações candidatas e sensibilidades para a análise de associações.",
+        limitation="A amostragem é bounded e a cor não implica causalidade; os resultados dependem das variáveis escolhidas.",
+        status=EvidenceStatus.PROTOTYPE,
+        terms={"Associação": "Variação conjunta observada, sem afirmar que uma variável causa a outra."},
+    )
+    mo.vstack([mo.md("## 4. Relações"), render_narrative_section(mo, _relationship_narrative), mo.hstack([x_ctl, y_ctl, color_ctl]), fig_rel,
                mo.md("Amostra determinística de até 4.000 faixas; cor não implica mecanismo causal.")])
     return
 
@@ -211,7 +282,7 @@ def _(KMeans, PCA, StandardScaler, calinski_harabasz_score, davies_bouldin_score
 
 
 @app.cell
-def _(best_k, cluster_metrics, go, mo, pframe, variance):
+def _(EvidenceStatus, NarrativeSection, best_k, cluster_metrics, go, mo, pframe, render_narrative_section, variance):
     fig_pca_2d = go.Figure(go.Scattergl(x=pframe["PC1"].to_numpy(), y=pframe["PC2"].to_numpy(),
         mode="markers", marker={"size": 5, "opacity": .45,
         "color": pframe["PC3"].to_numpy(), "colorscale": "Viridis", "colorbar": {"title": "PC3"}}))
@@ -220,14 +291,29 @@ def _(best_k, cluster_metrics, go, mo, pframe, variance):
         z=pframe["PC3"].to_numpy(), mode="markers", marker={"size": 2.5, "opacity": .4,
         "color": pframe["cluster"].to_numpy(), "colorscale": "Turbo"}))
     fig_pca.update_layout(title=f"PCA 3D + KMeans opcional (k={best_k})", height=560)
-    mo.vstack([mo.md("## 5. PCA e clustering"),
+    _structure_narrative = NarrativeSection(
+        title="PCA e clustering do espaço de áudio",
+        question="É possível resumir a geometria das audio features e encontrar agrupamentos estáveis?",
+        population="Amostra determinística de até 6.000 faixas canônicas",
+        unit="uma faixa representada por dez features contínuas padronizadas",
+        method="PCA projeta as features em componentes; K-means é comparado para k entre 2 e 6 com métricas internas.",
+        how_to_read="A distância no plano é geométrica; a variância explicada indica o que cada componente resume.",
+        denominator="Até 6.000 faixas sem nulos nas dez features; k testado de 2 a 6.",
+        result=f"A configuração escolhida pelo silhouette nesta exploração é k={best_k}; isso não constitui cluster natural validado.",
+        interpretation="A projeção é útil para exploração de estrutura, mas estabilidade por bootstrap/null ainda é necessária antes de qualquer claim de segmentos.",
+        use="Orientar o experimento independente de estrutura musical e suas sensibilidades.",
+        limitation="Esta célula ainda não aplica o gate de estabilidade ARI nem a comparação com referência nula.",
+        status=EvidenceStatus.PROTOTYPE,
+        terms={"PCA": "Projeção linear que organiza a variância das features em componentes.", "Silhouette": "Métrica interna de coesão e separação, não prova de clusters reais."},
+    )
+    mo.vstack([mo.md("## 5. PCA e clustering"), render_narrative_section(mo, _structure_narrative),
                mo.hstack([mo.ui.table(variance), mo.ui.table(cluster_metrics)], widths="equal"), fig_pca_2d, fig_pca,
                mo.md("A visão 2D é primária e a 3D é opcional/bounded. k maximiza silhouette entre 2–6, contrastado por Davies–Bouldin e Calinski–Harabasz. Clusters descrevem geometria; não são segmentos de ouvintes.")])
     return
 
 
 @app.cell
-def _(db, go, mo):
+def _(EvidenceStatus, NarrativeSection, db, go, mo, render_narrative_section):
     leaves = db.execute("""
       WITH genre_counts AS (SELECT track_id, count(DISTINCT track_genre) k_genre FROM track_genres GROUP BY 1),
       artist_counts AS (SELECT track_id, count(DISTINCT artist) k_artist FROM track_artists GROUP BY 1),
@@ -259,7 +345,22 @@ def _(db, go, mo):
         tree_nodes[track_id] = {"label": row["track_name"][:42], "parent": artist_id, "value": row["area"], "color": row["popularity"]}
     tree = go.Figure(go.Treemap(ids=list(tree_nodes), labels=[x["label"] for x in tree_nodes.values()], parents=[x["parent"] for x in tree_nodes.values()], values=[x["value"] for x in tree_nodes.values()], branchvalues="total", marker={"colors": [x["color"] for x in tree_nodes.values()], "colorscale": "Viridis", "colorbar": {"title": "popularity"}}))
     tree.update_layout(title="Treemap: gênero → artista → faixa", height=560, template="plotly_white")
-    mo.vstack([mo.md("## 6. Treemap conectado e bounded"), tree,
+    _treemap_narrative = NarrativeSection(
+        title="Treemap conectado: gênero → artista → faixa",
+        question="Como uma seleção limitada do catálogo se distribui hierarquicamente entre gêneros, artistas e faixas?",
+        population="Top 5 gêneros, 6 artistas por gênero e 8 faixas por artista",
+        unit="uma faixa contribui fracionariamente para evitar dupla contagem em memberships",
+        method="A hierarquia é derivada de arestas auditadas; área usa contribuição fracionária aditiva e cor usa popularity observada da folha.",
+        how_to_read="Clique nos níveis para aprofundar; compare áreas como contribuição ao recorte, não como número bruto de ouvintes.",
+        denominator="Até 5 × 6 × 8 folhas selecionadas, com pesos fracionários por gênero e artista.",
+        result="A seleção conecta três entidades do catálogo sem tratar gênero como árvore taxonômica.",
+        interpretation="A visualização ajuda a explorar concentração e interseções, mas não estima importância causal de artistas ou gêneros.",
+        use="Avaliar se a hierarquia acrescenta narrativa ao relatório final.",
+        limitation="O recorte top-n é exploratório e a área não é popularity; o parser de artistas ainda exige auditoria específica.",
+        status=EvidenceStatus.PROTOTYPE,
+        terms={"Contribuição fracionária": "Peso 1/(n gêneros × n artistas) usado para reduzir duplicação no recorte."},
+    )
+    mo.vstack([mo.md("## 6. Treemap conectado e bounded"), render_narrative_section(mo, _treemap_narrative), tree,
                mo.md("Top 5 gêneros, 6 artistas/gênero e 8 faixas/artista. Área = contribuição aditiva `1/(n gêneros × n artistas)`; cor da folha = popularity observada. A visualização não trata gênero como árvore taxonômica nem usa popularity como área.")])
     return (tree,)
 
@@ -288,8 +389,23 @@ def _(db, go, np):
 
 
 @app.cell
-def _(heatmap, mo, sankey):
-    mo.vstack([mo.md("## 7. Grafos derivados — sem graph database"), heatmap, sankey,
+def _(EvidenceStatus, NarrativeSection, heatmap, mo, render_narrative_section, sankey):
+    _graph_narrative = NarrativeSection(
+        title="Grafos derivados de coocorrência",
+        question="Quais gêneros compartilham faixas e quais conexões artista–gênero aparecem no recorte?",
+        population="15 gêneros com maior suporte e 30 arestas artista–gênero mais frequentes",
+        unit="uma aresta agregada entre entidades, ponderada por faixas distintas",
+        method="Agregamos tabelas de arestas no DuckDB e exibimos uma matriz de sobreposição e um Sankey bounded.",
+        how_to_read="Células mais intensas indicam mais faixas compartilhadas; links mais largos indicam maior peso no recorte.",
+        denominator="Top 15 gêneros para a matriz e top 30 arestas para o Sankey.",
+        result="As figuras mostram relações de catálogo observadas, não uma rede social de ouvintes.",
+        interpretation="A estrutura é útil para formular hipóteses sobre gêneros relacionados e features de grafo.",
+        use="Comparar, em experimento posterior, features de grafo contra o mesmo baseline e split.",
+        limitation="Não há normalização Jaccard/cosseno nem validação incremental nesta exploração; nenhuma conclusão preditiva deve ser extraída.",
+        status=EvidenceStatus.PROTOTYPE,
+        terms={"Coocorrência": "Duas categorias aparecem associadas à mesma faixa no snapshot."},
+    )
+    mo.vstack([mo.md("## 7. Grafos derivados — sem graph database"), render_narrative_section(mo, _graph_narrative), heatmap, sankey,
                mo.md("A matriz mostra faixas compartilhadas; o Sankey limitado revela hubs sem renderizar a rede completa.")])
     return
 
@@ -323,14 +439,29 @@ def _(GroupShuffleSplit, HistGradientBoostingRegressor, ShuffleSplit, db, featur
 
 
 @app.cell
-def _(go, mo, results, summary):
+def _(EvidenceStatus, NarrativeSection, go, mo, render_narrative_section, results, summary):
     _grouped_results=results.filter(results["split"]=="artista agrupado")
     fig=go.Figure()
     for name in sorted(_grouped_results["modelo"].unique().to_list()):
         fig.add_trace(go.Box(y=_grouped_results.filter(_grouped_results["modelo"]==name)["MAE"].to_list(),name=name,boxpoints="all"))
     fig.update_layout(title="MAE em cinco splits por artista",yaxis_title="MAE (menor é melhor)",height=440)
-    mo.vstack([mo.md("## 8. Experimento preditivo validado"),mo.ui.table(summary),fig,
-      mo.md("Target: popularidade contínua. Split principal agrupa artistas; aleatório é diagnóstico. `audio+grafo` adiciona número de gêneros e tamanho do catálogo do artista calculado só no treino. Ganho instável é resultado inconclusivo.")])
+    _prediction_narrative = NarrativeSection(
+      title="Protótipo exploratório de avaliação preditiva",
+      question="Um conjunto de audio features reduz o erro de estimar a popularity observada para artistas não vistos?",
+      population="Amostra bounded do snapshot, com split principal agrupado por artista",
+      unit="uma faixa canônica com popularity observada",
+      method="Comparamos uma baseline e um regressor em cinco divisões por artista; a divisão aleatória é apenas diagnóstico.",
+      how_to_read="Compare distribuições de MAE: menor é melhor. Não interprete o gráfico como previsão temporal.",
+      denominator="Cinco repetições do split agrupado; resumo com MAE, RMSE e R².",
+      result="A tabela e o boxplot registram um experimento preliminar, ainda sem o protocolo completo de bootstrap e auditoria de fingerprints.",
+      interpretation="O resultado pode orientar a próxima especificação, mas não sustenta claim preditivo final.",
+      use="Servir como ponto de partida para a entrega de validação preditiva vinculada às issues #41 e #48.",
+      limitation="Faltam modelos obrigatórios completos, intervalos pareados, estratos de colaboração e ablações fold-local; não alegar generalização validada.",
+      status=EvidenceStatus.PROTOTYPE,
+      terms={"Leakage": "Informação do teste ou do futuro que entra indevidamente no treino.", "MAE": "Erro absoluto médio em pontos de popularity; menor é melhor."},
+    )
+    mo.vstack([mo.md("## 8. Protótipos exploratórios — não validados"), render_narrative_section(mo, _prediction_narrative), mo.ui.table(summary),fig,
+      mo.md("Target: popularidade contínua. Este bloco é um protótipo de desenho experimental; não apresenta resultados provisórios como evidência final." )])
     return
 
 

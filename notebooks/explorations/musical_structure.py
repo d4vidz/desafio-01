@@ -27,8 +27,10 @@ def _():
     import polars as pl
     from sklearn.decomposition import PCA
     from sklearn.preprocessing import RobustScaler, StandardScaler
-    from spotify_data import CONTINUOUS_AUDIO_FEATURES, build_data_layer, clustering_stability
-    return CONTINUOUS_AUDIO_FEATURES, PCA, Path, RobustScaler, StandardScaler, build_data_layer, clustering_stability, go, mo, np, pl, root
+    from spotify_data import (CONTINUOUS_AUDIO_FEATURES, EvidenceStatus,
+                              NarrativeSection, build_data_layer,
+                              clustering_stability, render_narrative_section)
+    return CONTINUOUS_AUDIO_FEATURES, EvidenceStatus, NarrativeSection, PCA, Path, RobustScaler, StandardScaler, build_data_layer, clustering_stability, go, mo, np, pl, render_narrative_section, root
 
 
 @app.cell
@@ -57,27 +59,72 @@ def _(CONTINUOUS_AUDIO_FEATURES, PCA, RobustScaler, StandardScaler, mo, np, pl, 
 
 
 @app.cell
-def _(go, loadings, mo, pca_frame, variance):
+def _(EvidenceStatus, NarrativeSection, go, loadings, mo, pca_frame, render_narrative_section, variance):
     plot = pca_frame.sample(n=min(4_000, pca_frame.height), seed=2026)
     fig = go.Figure(go.Scattergl(x=plot["PC1"].to_numpy(), y=plot["PC2"].to_numpy(), mode="markers", marker={"size": 5, "opacity": 0.45, "color": plot["PC3"].to_numpy(), "colorscale": "Viridis", "colorbar": {"title": "PC3"}}, text=plot["representative_track_genre"].to_list(), hovertemplate="gênero=%{text}<br>PC1=%{x:.2f}<br>PC2=%{y:.2f}<extra></extra>"))
     fig.update_layout(title="PCA 2D — cor por PC3; amostra bounded", height=520, template="plotly_white")
-    mo.vstack([mo.md("# Musical structure: PCA e clustering"), fig, mo.hstack([mo.ui.table(variance), mo.ui.table(loadings)], widths="equal"), mo.md("PCA usa as dez features contínuas, padronização e `duration_ms` bruto nesta primeira versão. A RobustScaler fica como sensibilidade; loadings e variância são obrigatórios para interpretar os eixos." )])
+    pca_narrative = NarrativeSection(
+        title="PCA e estrutura do espaço de áudio",
+        question="Quais combinações de features explicam a maior parte da variação observada?",
+        population=f"{pca_frame.height:,} faixas canônicas amostradas do catálogo.",
+        unit="um ponto por faixa; cor indica PC3 e texto mostra o gênero representativo",
+        method="Padronizamos dez features contínuas e projetamos combinações em componentes principais; loadings mostram a contribuição de cada feature.",
+        how_to_read="PC1/PC2 são combinações, não colunas originais; a variância explicada informa quanto cada componente resume.",
+        denominator=f"A amostra tem até 6.000 faixas e {len(loadings)} features na tabela de loadings.",
+        result=f"Os três componentes exibidos explicam {variance['variancia_explicada'].sum():.1%} da variância padronizada.",
+        interpretation="A projeção compacta permite inspecionar estrutura musical, sem provar dimensões psicológicas ou gêneros naturais.",
+        use="Os componentes orientam a inspeção exploratória de clustering em #35.",
+        limitation="RobustScaler, log-duration e estabilidade com referência/null permanecem sensibilidades não concluídas.",
+        status=EvidenceStatus.PROTOTYPE,
+        terms={"loading": "peso de uma feature na combinação que forma um componente", "variância explicada": "fração da variação resumida por um componente"},
+    )
+    mo.vstack([mo.md("# Musical structure: PCA e clustering"), render_narrative_section(mo, pca_narrative), fig, mo.hstack([mo.ui.table(variance), mo.ui.table(loadings)], widths="equal")])
     return (fig,)
 
 
 @app.cell
-def _(clustering_stability, mo, standard):
+def _(EvidenceStatus, NarrativeSection, clustering_stability, mo, render_narrative_section, standard):
     stability = clustering_stability(standard, k_values=range(2, 9), repeats=2, sample_size=3_000)
     robust_candidates = stability.filter(stability["gate_ari"])
     claim = "há candidatos estáveis para inspeção" if robust_candidates.height else "não há clusters naturais robustos pelo gate ARI ≥ 0,70"
-    mo.vstack([mo.md("## Estabilidade e gate de clusters"), mo.ui.table(stability), mo.md(f"Conclusão provisória: **{claim}**. O gate completo ainda deve contrastar separação com referência/null no relatório final; silhouette isolada nunca cria uma persona ou segmento de ouvintes." )])
+    stability_narrative = NarrativeSection(
+        title="Estabilidade e gate de clustering",
+        question="Os agrupamentos reaparecem quando reamostramos as faixas?",
+        population="A matriz padronizada, avaliada com K-means e Gaussian Mixtures para k=2..8.",
+        unit="uma linha por algoritmo e número de clusters",
+        method="Repetimos ajustes em amostras e comparamos atribuições por ARI; o gate mínimo atual é ARI mediana ≥ 0,70.",
+        how_to_read="ARI alto indica concordância entre repetições; silhouette mede separação interna. Nenhuma isoladamente prova segmentação substantiva.",
+        denominator=f"{stability.height} combinações foram calculadas com duas repetições exploratórias.",
+        result=f"Nesta execução, {claim}.",
+        interpretation="Este é um diagnóstico inicial de repetibilidade, não uma conclusão sobre clusters naturais.",
+        use="A seleção final depende do protocolo de #35, incluindo referência/null e sensibilidades.",
+        limitation="Referência/null, repetição completa e avaliação de sensibilidade ainda não foram executadas.",
+        status=EvidenceStatus.PROTOTYPE,
+        terms={"ARI": "concordância entre partições ajustada ao acaso", "stability": "persistência do agrupamento sob reamostragem"},
+    )
+    mo.vstack([mo.md("## Estabilidade e gate de clusters"), render_narrative_section(mo, stability_narrative), mo.ui.table(stability)])
     return (stability,)
 
 
 @app.cell
-def _(mo, pca_frame, stability):
+def _(EvidenceStatus, NarrativeSection, mo, pca_frame, render_narrative_section, stability):
     best = stability.sort(["gate_ari", "ARI_mediana", "silhouette"], descending=True).head(1)
-    mo.vstack([mo.md("## Evidence brief"), mo.ui.table(best), mo.md(f"A projeção mantém 2D como visão primária e limita a nuvem a {min(4_000, pca_frame.height):,} pontos. Uma visão 3D pode ser mantida como exploração opcional, mas não é necessária para o claim principal." )])
+    brief = NarrativeSection(
+        title="Evidence brief da estrutura musical",
+        question="O que já podemos afirmar com segurança sobre esta exploração?",
+        population="A mesma amostra bounded do notebook.",
+        unit="resumo do melhor candidato segundo o gate exploratório",
+        method="Consolidamos o candidato mais estável entre os resultados calculados, sem transformar o ranking em validação.",
+        how_to_read="A tabela é um índice de auditoria; consulte PCA, loadings e estabilidade antes de interpretar candidatos.",
+        denominator=f"A nuvem 2D é limitada a {min(4_000, pca_frame.height):,} pontos.",
+        result="O notebook oferece uma projeção e um diagnóstico bounded, mas não encerra a investigação de clusters.",
+        interpretation="A conclusão permitida é descritiva: a estrutura pode ser inspecionada, sem afirmar personas ou fronteiras naturais.",
+        use="O resultado orienta a especificação de estabilidade e null em #35.",
+        limitation="Clustering completo, null e 3D permanecem follow-up; não há claim final neste notebook.",
+        status=EvidenceStatus.PROTOTYPE,
+        terms={"evidence brief": "resumo curto que aponta resultado, evidência e limites para revisão"},
+    )
+    mo.vstack([mo.md("## Evidence brief"), render_narrative_section(mo, brief), mo.ui.table(best)])
     return
 
 
