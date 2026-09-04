@@ -8,6 +8,7 @@ from scripts.render_notebooks import (
     build_manifest,
     declared_evidence_statuses,
 )
+from scripts.update_molab_context import SNAPSHOT_PATTERN
 
 
 def test_every_canonical_notebook_declares_evidence_maturity():
@@ -16,15 +17,18 @@ def test_every_canonical_notebook_declares_evidence_maturity():
 
 
 def test_every_canonical_notebook_declares_reproducible_molab_bootstrap():
-    snapshot = "0ac3efc5133fa6481519a2a373134c9e6f50689c"
     source_hash = "1a769bbbbb2fa4451d4309248349799ce8ab5efc21e053e2bb3aa28ddcb53d83"
+    snapshots = set()
     for notebook in NOTEBOOKS:
         source = notebook.read_text(encoding="utf-8")
         assert source.startswith("# /// script"), notebook
-        assert f"desafio-01/archive/{{snapshot}}.zip" in source, notebook
-        assert snapshot in source, notebook
+        matches = SNAPSHOT_PATTERN.findall(source)
+        assert len(matches) == 1, notebook
+        snapshots.add(matches[0][1])
+        assert "desafio-01/archive/{snapshot}.zip" in source, notebook
         assert source_hash in source, notebook
         assert "observed_source != expected_source" in source, notebook
+    assert len(snapshots) == 1
 
 
 def test_committed_manifest_matches_current_sources_and_html():

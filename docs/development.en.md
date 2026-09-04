@@ -33,6 +33,28 @@ Local HTML snapshots live under `artifacts/notebooks/html/` and are regenerated 
 
 Primary development remains local because it provides stable access to the CSV, Git, tests, in-memory DuckDB, and the agent without depending on cloud session limits, quotas, or rate limiting. Changes made in Molab must return as a `.py` file and pass the same tests and merge-request workflow; the cloud notebook is not a second source of truth.
 
+### Molab context pin
+
+The GitHub-backed preview receives the selected `.py` file, not the whole
+repository tree. Each notebook therefore contains a small bootstrap that
+downloads a ZIP archive from an immutable commit. That snapshot supplies
+`spotify_data/` and the CSV; the CSV hash is checked before analysis. The
+snapshot commit must contain the shared layer and required data, but it need not
+be the same commit as the entrypoint when only that notebook's narrative
+changed.
+
+When changing `spotify_data/`, the contract, or the CSV, update every pin
+explicitly:
+
+```powershell
+uv run python scripts/update_molab_context.py <40-character-commit-sha>
+```
+
+Then regenerate HTML, run the checks, and publish the GitHub mirror. The
+[`molab-notebooks.en.md`](molab-notebooks.en.md) document must record the
+commit and verification date. This keeps six separate notebooks simple without
+allowing their shared context to become silently stale.
+
 ## Validation before sharing
 
 ```powershell

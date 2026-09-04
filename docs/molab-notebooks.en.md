@@ -26,7 +26,8 @@ available in the workspace:
 The public mirror is available at
 [`d4vidz/desafio-01`](https://github.com/d4vidz/desafio-01). GitLab remains the
 canonical source; GitHub is the public preview and Molab execution surface.
-The branch below contains the current working commit `2ee61b4`:
+The branch below contains the current working commit
+`12f6f86d857b55ddd37ab0b1a575dfb49b7f3f36`:
 
 | Notebook | Contextual Molab preview | Verification on 2026-09-02 (BRT) |
 | --- | --- | --- |
@@ -38,10 +39,12 @@ The branch below contains the current working commit `2ee61b4`:
 | Integrating analysis | [open](https://molab.marimo.io/github/d4vidz/desafio-01/blob/chore/45-versionar-governanca-e-analises/notebooks/spotify_analysis.py) | HTTP route 200; runtime pending |
 
 The HTTP test confirmed that Molab recognizes all six paths and returns each
-notebook title. Interactive execution is not marked as verified yet because
-the browser received `ERR_CONNECTION_RESET` while starting these routes. This
-is distinct from the earlier missing-context error caused by manual import and
-should be retested when the service accepts the session.
+notebook title. A runtime must be started with “Run it now” before it is marked
+verified; HTTP 200 alone does not prove execution. The interactive execution
+observed in this revision showed that the preview has a temporary workspace and
+does not automatically mount the repository tree. Each notebook bootstrap
+downloads the shared pinned context above and checks the CSV hash before
+importing modules.
 
 This flow creates one link per notebook, all pointing to the same repository
 and branch; it does not create one file browser that switches notebooks inside
@@ -69,3 +72,12 @@ uv run python scripts/render_notebooks.py --check
 
 See also [development.en.md](development.en.md) and
 [contributing.en.md](contributing.en.md).
+
+When the shared layer or CSV changes, update all six pins with:
+
+```powershell
+uv run python scripts/update_molab_context.py <40-character-commit-sha>
+```
+
+The pin is an explicit boundary for shared context, not a second source of
+truth or an invitation to edit only the cloud copy.

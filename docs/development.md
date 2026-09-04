@@ -33,6 +33,27 @@ Os snapshots HTML locais ficam em `artifacts/notebooks/html/` e são regenerados
 
 O desenvolvimento principal continua local porque oferece acesso estável ao CSV, Git, testes, DuckDB em memória e ao agente, sem depender de sessão, quota ou rate limiting do serviço cloud. Mudanças feitas no Molab devem voltar como arquivo `.py` e passar pelos mesmos testes/MR; o notebook cloud não é uma segunda fonte de verdade.
 
+### Pin do contexto no Molab
+
+O preview GitHub-backed recebe o arquivo `.py` selecionado, não a árvore inteira
+do repositório. Por isso cada notebook contém um bootstrap pequeno que baixa um
+arquivo ZIP de um commit imutável. Esse snapshot fornece `spotify_data/` e o CSV;
+o hash do CSV é conferido antes da análise. O commit do snapshot deve conter a
+camada compartilhada e os dados necessários, mas não precisa ser o mesmo commit
+do arquivo de entrada quando apenas a narrativa daquele notebook mudou.
+
+Ao publicar uma alteração em `spotify_data/`, no contrato ou no CSV, atualize
+explicitamente todos os pins:
+
+```powershell
+uv run python scripts/update_molab_context.py <40-character-commit-sha>
+```
+
+Depois regenere os HTMLs, execute os checks e publique o espelho GitHub. O
+documento [molab-notebooks.md](molab-notebooks.md) deve registrar o commit e a
+data da verificação. Assim a separação dos seis notebooks continua simples sem
+permitir que o contexto compartilhado fique silenciosamente desatualizado.
+
 ## Validação antes de compartilhar
 
 ```powershell

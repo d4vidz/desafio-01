@@ -28,7 +28,7 @@ O espelho público foi criado em
 [`d4vidz/desafio-01`](https://github.com/d4vidz/desafio-01). O GitLab continua
 sendo a origem canônica; o GitHub serve como superfície pública de preview e
 execução no Molab. O branch abaixo contém o commit de trabalho atual
-`2ee61b4`:
+`12f6f86d857b55ddd37ab0b1a575dfb49b7f3f36`:
 
 | Notebook | Preview contextual no Molab | Verificação em 02/09/2026 (BRT) |
 | --- | --- | --- |
@@ -40,10 +40,12 @@ execução no Molab. O branch abaixo contém o commit de trabalho atual
 | Análise integradora | [abrir](https://molab.marimo.io/github/d4vidz/desafio-01/blob/chore/45-versionar-governanca-e-analises/notebooks/spotify_analysis.py) | rota HTTP 200; runtime pendente |
 
 O teste HTTP confirmou que o Molab reconhece os seis caminhos e retorna o
-título do notebook. A execução interativa ainda não foi marcada como
-verificada: o navegador recebeu `ERR_CONNECTION_RESET` ao iniciar essas rotas.
-Isso é diferente do erro anterior de contexto ausente na importação manual e
-deve ser retestado quando o serviço aceitar a sessão.
+título do notebook. O runtime deve ser iniciado com “Run it now” antes de ser
+marcado como verificado; HTTP 200 isolado não prova execução. A execução
+interativa observada nesta revisão mostrou que o preview tem um workspace
+temporário e não monta automaticamente a árvore do repositório. O bootstrap de
+cada notebook baixa o contexto compartilhado pinado acima e verifica o hash do
+CSV antes de importar os módulos.
 
 Esse fluxo cria um link por notebook, todos apontando para o mesmo repositório
 e branch, mas não um único explorador de arquivos que alterne notebooks dentro
@@ -71,3 +73,12 @@ uv run python scripts/render_notebooks.py --check
 
 Consulte também [development.md](development.md) e
 [contributing.md](contributing.md).
+
+Quando a camada compartilhada ou o CSV mudar, atualize os seis pins com:
+
+```powershell
+uv run python scripts/update_molab_context.py <40-character-commit-sha>
+```
+
+O pin é uma fronteira explícita do contexto compartilhado; não é uma segunda
+fonte de verdade nem um convite para editar somente a cópia cloud.

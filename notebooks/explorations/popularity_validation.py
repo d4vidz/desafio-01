@@ -30,7 +30,7 @@ def _():
         with ZipFile(bundle_path) as bundle:
             bundle.extractall(root)
     if not (root / "spotify_data").exists():
-        snapshot = "0ac3efc5133fa6481519a2a373134c9e6f50689c"
+        snapshot = "12f6f86d857b55ddd37ab0b1a575dfb49b7f3f36"
         snapshot_root = root / f"desafio-01-{snapshot}"
         if not snapshot_root.exists():
             archive_path = root / f"desafio-01-{snapshot}.zip"
