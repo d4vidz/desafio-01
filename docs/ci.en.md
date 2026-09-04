@@ -23,9 +23,11 @@ To unblock CI, the account that triggers the pipeline must complete GitLab's req
 
 After verification, pipeline [#2813599791](https://gitlab.com/residencia-em-ia/desafio-01/-/pipelines/2813599791) ran and exposed a real portability failure: the test compared CRLF bytes from the Windows checkout with LF bytes from the Linux runner. The fix adds an LF rule in `.gitattributes` and compares SHA-256 over canonical text content. The versioned CSV and its values were not changed.
 
+Pipeline [#2818744127](https://gitlab.com/residencia-em-ia/desafio-01/-/pipelines/2818744127), for commit `ac124c50`, started the `governance` job and failed at `tests/test_notebook_artifacts.py::test_committed_manifest_matches_current_sources_and_html`. The trace shows that translation and environment installation passed; the divergence returned because `scripts/render_notebooks.py` hashed notebook bytes from the local checkout while the Linux runner computed the hash from LF text. The cause was therefore snapshot provenance, not the CSV, environment, or Marimo execution. Commit `120d00c` normalizes CRLF/LF in `source_digest()` and adds a regression test; the local suite then passed with 31 tests.
+
 ```bash
 uv sync --frozen
 uv run python scripts/check_translation_pairs.py
 uv run pytest -q
-uv run marimo check notebooks/spotify_analysis.py notebooks/explorations/popularity_baselines.py notebooks/explorations/musical_structure.py
+uv run marimo check notebooks/data_contract_audit.py notebooks/spotify_analysis.py notebooks/explorations/popularity_associations.py notebooks/explorations/genre_representations.py notebooks/explorations/musical_structure.py notebooks/explorations/popularity_validation.py
 ```

@@ -23,9 +23,11 @@ Para destravar o CI, a conta que dispara o pipeline deve concluir a verificaçã
 
 Depois da verificação, o pipeline [#2813599791](https://gitlab.com/residencia-em-ia/desafio-01/-/pipelines/2813599791) executou e expôs uma falha real de portabilidade: o teste comparava bytes CRLF do checkout Windows com bytes LF do runner Linux. A correção adiciona uma regra LF em `.gitattributes` e compara o SHA-256 do conteúdo textual canônico. O CSV versionado e seus valores não foram alterados.
 
+No pipeline [#2818744127](https://gitlab.com/residencia-em-ia/desafio-01/-/pipelines/2818744127), do commit `ac124c50`, o job `governance` iniciou e falhou em `tests/test_notebook_artifacts.py::test_committed_manifest_matches_current_sources_and_html`. O trace mostra que tradução e instalação passaram; a divergência reapareceu porque `scripts/render_notebooks.py` gerava o hash do notebook a partir dos bytes locais, enquanto o runner Linux calculava o hash a partir de LF. Portanto, a causa era a proveniência dos snapshots, não o CSV, o ambiente ou a execução do Marimo. O commit `120d00c` normaliza CRLF/LF em `source_digest()` e adiciona um teste de regressão; localmente a suíte passou de 30 para 31 testes aprovados.
+
 ```bash
 uv sync --frozen
 uv run python scripts/check_translation_pairs.py
 uv run pytest -q
-uv run marimo check notebooks/spotify_analysis.py notebooks/explorations/popularity_baselines.py notebooks/explorations/musical_structure.py
+uv run marimo check notebooks/data_contract_audit.py notebooks/spotify_analysis.py notebooks/explorations/popularity_associations.py notebooks/explorations/genre_representations.py notebooks/explorations/musical_structure.py notebooks/explorations/popularity_validation.py
 ```
