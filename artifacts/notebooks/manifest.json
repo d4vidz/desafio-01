@@ -1,0 +1,138 @@
+{
+  "version": 1,
+  "source": {
+    "path": "data/raw/spotify_tracks.csv",
+    "sha256": "1a769bbbbb2fa4451d4309248349799ce8ab5efc21e053e2bb3aa28ddcb53d83",
+    "contract_version": "0.1"
+  },
+  "repository": {
+    "commit_at_render": "3f8cc01695ba031453ac5b3e3e9cb55c16cb39d2",
+    "ref_at_render": "chore/45-versionar-governanca-e-analises",
+    "working_tree_dirty_at_render": true,
+    "environment_lock_sha256": "0761c9aca2197c990caa146fffc072dfe04a66a59efcbf14f3589114dad3f088"
+  },
+  "environment": {
+    "python": "3.12.13",
+    "marimo": "0.24.0",
+    "platform": "Windows-11-10.0.26200-SP0"
+  },
+  "notebooks": [
+    {
+      "notebook": "notebooks/data_contract_audit.py",
+      "notebook_sha256": "0a378e05b3cd9008fbd6bbd8a332670514bdaa2727c1c6efbb37c524704b43e8",
+      "html": "artifacts/notebooks/html/data_contract_audit.html",
+      "html_sha256": "4e84331c6159aa287dddf3bc2a8bd352be17a8c893bf2add66cc6e8a33ec5ac1",
+      "html_bytes": 125440,
+      "declared_evidence_statuses": [
+        "infraestrutura"
+      ],
+      "execution_status": "passed",
+      "warnings": [],
+      "configuration": {
+        "generated_with": "0.24.0",
+        "app_width": "full",
+        "declared_integer_seeds": [],
+        "output_limit_bytes_per_cell": 5000000
+      }
+    },
+    {
+      "notebook": "notebooks/explorations/popularity_associations.py",
+      "notebook_sha256": "7dc2ee04504a5b70445fc90f40e5deaad639e37f462880948d7b751a9c308616",
+      "html": "artifacts/notebooks/html/popularity_associations.html",
+      "html_sha256": "c934760b08661f0daf31b6e75835c78011aa7c7771ed64ebfb0abad80b00b374",
+      "html_bytes": 1106962,
+      "declared_evidence_statuses": [
+        "protótipo"
+      ],
+      "execution_status": "passed",
+      "warnings": [],
+      "configuration": {
+        "generated_with": "0.24.0",
+        "app_width": "full",
+        "declared_integer_seeds": [],
+        "output_limit_bytes_per_cell": 5000000
+      }
+    },
+    {
+      "notebook": "notebooks/explorations/genre_representations.py",
+      "notebook_sha256": "f0219d347dbe95811ce41ce1eb3a556d634f21cbc87432be8e5f6f756ddd29ad",
+      "html": "artifacts/notebooks/html/genre_representations.html",
+      "html_sha256": "ec25527ec19754fcb144a390094d37a4a757b25522b493c433c22f90c8dbd542",
+      "html_bytes": 171273,
+      "declared_evidence_statuses": [
+        "infraestrutura",
+        "protótipo"
+      ],
+      "execution_status": "passed",
+      "warnings": [],
+      "configuration": {
+        "generated_with": "0.24.0",
+        "app_width": "full",
+        "declared_integer_seeds": [],
+        "output_limit_bytes_per_cell": 5000000
+      }
+    },
+    {
+      "notebook": "notebooks/explorations/musical_structure.py",
+      "notebook_sha256": "ebb120a7a2867662849cddcb39fffca62c23972f15dd5d4f9ffd8079799faac1",
+      "html": "artifacts/notebooks/html/musical_structure.html",
+      "html_sha256": "f375b779001e9e84fe95ff4b90975ee3304c522825b0fb2f249a1b79cf1e72fc",
+      "html_bytes": 370203,
+      "declared_evidence_statuses": [
+        "protótipo"
+      ],
+      "execution_status": "passed",
+      "warnings": [],
+      "configuration": {
+        "generated_with": "0.24.0",
+        "app_width": "full",
+        "declared_integer_seeds": [
+          2026
+        ],
+        "output_limit_bytes_per_cell": 5000000
+      }
+    },
+    {
+      "notebook": "notebooks/explorations/popularity_validation.py",
+      "notebook_sha256": "2ddfdf5e362bdf37e4f9086ce4fd91dd5efd0b5ea1ea4bdd19359316b4159145",
+      "html": "artifacts/notebooks/html/popularity_validation.html",
+      "html_sha256": "2aedf8a738131d9f1b45639144d822a4b7f20c98781ca3583087e5f46a607f0b",
+      "html_bytes": 84768,
+      "declared_evidence_statuses": [
+        "protótipo"
+      ],
+      "execution_status": "passed",
+      "warnings": [],
+      "configuration": {
+        "generated_with": "0.24.0",
+        "app_width": "full",
+        "declared_integer_seeds": [
+          2026
+        ],
+        "output_limit_bytes_per_cell": 5000000
+      }
+    },
+    {
+      "notebook": "notebooks/spotify_analysis.py",
+      "notebook_sha256": "0c07314c8ff2a9a6eae601a9b9d8524019a37716591ffc30b0878255be7ab84c",
+      "html": "artifacts/notebooks/html/spotify_analysis.html",
+      "html_sha256": "f48fa91a12f07e52ba5c02cf228b15dd11c0014f2bc4331433009800e6ff0184",
+      "html_bytes": 6004778,
+      "declared_evidence_statuses": [
+        "infraestrutura",
+        "experimento_completo",
+        "protótipo"
+      ],
+      "execution_status": "passed",
+      "warnings": [],
+      "configuration": {
+        "generated_with": "0.24.0",
+        "app_width": "full",
+        "declared_integer_seeds": [
+          2026
+        ],
+        "output_limit_bytes_per_cell": 5000000
+      }
+    }
+  ]
+}

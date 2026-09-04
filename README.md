@@ -1,93 +1,92 @@
-# Desafio 01
+# Análise de faixas do Spotify
 
+Análise exploratória reproduzível de metadados e audio features de faixas do Spotify usando [Marimo](https://marimo.io/), [DuckDB](https://duckdb.org/) e [Polars](https://pola.rs/).
 
+O projeto é orientado por perguntas: gráficos e modelos devem responder a uma pergunta documentada, tornar explícitos seu grain e sua agregação e declarar o que os dados não permitem estabelecer. A primeira etapa cobre qualidade e missingness dos dados, distribuições, relações, comparações por gênero musical, PCA, clustering, visões derivadas de grafos e modelagem preditiva validada. Como as features numéricas não têm missing values, esta versão documenta a decisão de não imputar.
 
-## Getting started
+## Estrutura do repositório
 
-To make it easy for you to get started with GitLab, here's a list of recommended next steps.
-
-Already a pro? Just edit this README.md and make it your own. Want to make it easy? [Use the template at the bottom](#editing-this-readme)!
-
-## Add your files
-
-* [Create](https://docs.gitlab.com/user/project/repository/web_editor/#create-a-file) or [upload](https://docs.gitlab.com/user/project/repository/web_editor/#upload-a-file) files
-* [Add files using the command line](https://docs.gitlab.com/topics/git/add_files/#add-files-to-a-git-repository) or push an existing Git repository with the following command:
-
+```text
+data/raw/spotify_tracks.csv       # CSV de entrada
+docs/data-contract.md             # fonte, grain, schema e regras de qualidade
+docs/feature-roles.md             # papéis v0.1 das features e protocolo de evidência
+docs/categorical-representation.md # multi-hot, PPMI/SVD e protocolo de OOV
+docs/contributing.md              # fluxo de issues, gráficos e merge requests
+docs/branching.md                 # branches, commits, revisão e proteção de main
+docs/development.md               # ambiente local, Molab e pareamento com agentes
+docs/ci.md                        # diagnóstico e registro de pipelines
+docs/team-next-steps.md           # ponto de partida e handoff do time
+docs/molab-notebooks.md           # publicação, links e verificação Molab
+docs/notebook-communication.md    # contrato narrativo obrigatório (#69)
+docs/agent-review.md              # handoff Luna e auditoria Sol (#68)
+docs/glossary.md                  # vocabulário analítico para leitores
+AGENTS.md                         # regras obrigatórias para agentes
+notebooks/data_contract_audit.py  # auditoria detalhada do contrato
+notebooks/explorations/           # associações, gênero, estrutura e validação
+notebooks/spotify_analysis.py    # integrador final com evidência curada
+artifacts/notebooks/html/         # snapshots HTML estáticos revisáveis
+artifacts/notebooks/manifest.json # hashes, ambiente, execução e maturidade
+tests/                            # testes focados
+pyproject.toml                   # dependências e ferramentas do projeto
+scripts/render_notebooks.py       # renderização determinística dos snapshots
 ```
-cd existing_repo
-git remote add origin https://gitlab.com/residencia-em-ia/desafio-01.git
-git branch -M main
-git push -uf origin main
+
+## Início rápido
+
+Requer Python 3.12+ e [uv](https://docs.astral.sh/uv/).
+
+```bash
+uv sync
+uv run marimo edit notebooks/spotify_analysis.py
 ```
 
-## Integrate with your tools
+Para uma execução smoke não interativa e validação do notebook:
 
-* [Set up project integrations](https://gitlab.com/residencia-em-ia/desafio-01/-/settings/integrations)
+```bash
+uv run marimo check notebooks/spotify_analysis.py
+uv run python scripts/render_notebooks.py
+uv run python scripts/render_notebooks.py --check
+uv run python scripts/smoke_notebooks.py
+uv run pytest
+```
 
-## Collaborate with your team
+O script de renderização executa os seis notebooks canônicos e salva HTML com
+o código incluído em `artifacts/notebooks/html/`. Esses snapshots são
+versionados para revisão rápida a cada commit que altera notebooks; o manifest
+registra fonte, ambiente, configurações, status e warnings da execução. Não
+versione exports fora dessa pasta, bancos DuckDB, caches ou payloads sem
+limite.
 
-* [Invite team members and collaborators](https://docs.gitlab.com/user/project/members/)
-* [Create a new merge request](https://docs.gitlab.com/user/project/merge_requests/creating_merge_requests/)
-* [Automatically close issues from merge requests](https://docs.gitlab.com/user/project/issues/managing_issues/#closing-issues-automatically)
-* [Enable merge request approvals](https://docs.gitlab.com/user/project/merge_requests/approvals/)
-* [Set auto-merge](https://docs.gitlab.com/user/project/merge_requests/auto_merge/)
+O arquivo de entrada deve estar em `data/raw/spotify_tracks.csv`. O notebook deve falhar com uma mensagem clara se o arquivo não estiver presente; não baixe, sintetize ou substitua a fonte silenciosamente.
 
-## Test and Deploy
+## Arquitetura de dados
 
-Use the built-in continuous integration in GitLab.
+Cada runtime cria uma conexão DuckDB em memória e reconstrói suas tabelas a partir do CSV bruto. DuckDB é uma camada efêmera de consulta: não crie, versiona, faça cache nem dependa de arquivos `.duckdb`/`.db`. Use DuckDB para scans, joins, deduplicação, window functions e SQL agrupado; retorne resultados bounded para o trabalho tipado de features e gráficos em Polars.
 
-* [Get started with GitLab CI/CD](https://docs.gitlab.com/ci/quick_start/)
-* [Analyze your code for known vulnerabilities with Static Application Security Testing (SAST)](https://docs.gitlab.com/user/application_security/sast/)
-* [Deploy to Kubernetes, Amazon EC2, or Amazon ECS using Auto Deploy](https://docs.gitlab.com/topics/autodevops/requirements/)
-* [Use pull-based deployments for improved Kubernetes management](https://docs.gitlab.com/user/clusters/agent/)
-* [Set up protected environments](https://docs.gitlab.com/ci/environments/protected_environments/)
+A análise usa relações com quatro grains explícitos:
 
-***
+- `tracks_raw`: uma linha por linha do CSV de origem; duplicatas são mantidas para auditoria.
+- `tracks_clean`: uma linha limpa da fonte, sem o índice exportado, usada como entrada compartilhada.
+- `tracks`: uma linha canônica por `track_id`, usada para features por faixa, PCA, clustering e resumos de popularidade.
+- `track_genres`: uma linha por relação faixa–gênero, usada para comparações por gênero e visões derivadas de grafos.
 
-# Editing this README
+Consulte [docs/data-contract.md](docs/data-contract.md) para o contrato completo e a política de qualidade.
+A justificativa medida para a camada efêmera de DuckDB está em [docs/duckdb-benchmark.md](docs/duckdb-benchmark.md).
 
-When you're ready to make this README your own, just edit this file and use the handy template below (or feel free to structure it however you want - this is just a starting point!). Thanks to [makeareadme.com](https://www.makeareadme.com/) for this template.
+## Princípios de visualização
 
-## Suggestions for a good README
+Todo gráfico deve identificar sua pergunta, unidade de análise, agregação e caveat relevante. Outputs devem ser bounded e legíveis no Marimo; evite exibir tabelas completas ou objetos de grafo brutos. Gráficos por gênero devem mostrar o tratamento de grupos esparsos e esclarecer se faixas com múltiplos gêneros contribuem para vários grupos. Treemaps e redes só são permitidos quando a hierarquia ou as arestas representam uma relação significativa, por exemplo, `genre → artist → track` ou uma rede agregada de sobreposição entre gêneros.
 
-Every project is different, so consider which of these sections apply to yours. The sections used in the template are suggestions for most open source projects. Also keep in mind that while a README can be too long and detailed, too long is better than too short. If you think your README is too long, consider utilizing another form of documentation rather than cutting out information.
+O contrato completo de comunicação está em [docs/notebook-communication.md](docs/notebook-communication.md). A pergunta, a instrução de leitura, o resultado calculado, o status da evidência e o limite do claim devem nascer na mesma alteração que cria a visualização; não são cleanup editorial posterior.
 
-## Name
-Choose a self-explaining name for your project.
+## Contribuição
 
-## Description
-Let people know what your project can do specifically. Provide context and add a link to any reference visitors might be unfamiliar with. A list of Features or a Background subsection can also be added here. If there are alternatives to your project, this is a good place to list differentiating factors.
+Comece pelas guide questions existentes no GitLab e abra uma issue focada para a análise ou entrega de engenharia concreta. Vincule a issue à pergunta, ao grain, ao método, ao artifact esperado, aos caveats e à definition of done. Mantenha claims exploratórios descritivos, salvo quando um target validado e uma avaliação held-out sustentarem um claim preditivo. O fluxo completo está em [docs/contributing.md](docs/contributing.md).
 
-## Badges
-On some READMEs, you may see small images that convey metadata, such as whether or not all the tests are passing for the project. You can use Shields to add some to your README. Many services also have instructions for adding a badge.
+As convenções de Git estão em [docs/branching.md](docs/branching.md).
+O ambiente e o uso local/Molab estão em [docs/development.md](docs/development.md); o handoff operacional do time está em [docs/team-next-steps.md](docs/team-next-steps.md).
+Entregas agênticas de alto risco seguem [docs/agent-review.md](docs/agent-review.md) e as regras curtas de [AGENTS.md](AGENTS.md).
 
-## Visuals
-Depending on what you are making, it can be a good idea to include screenshots or even a video (you'll frequently see GIFs rather than actual videos). Tools like ttygif can help, but check out Asciinema for a more sophisticated method.
+## Escopo atual e próximos caminhos
 
-## Installation
-Within a particular ecosystem, there may be a common way of installing things, such as using Yarn, NuGet, or Homebrew. However, consider the possibility that whoever is reading your README is a novice and would like more guidance. Listing specific steps helps remove ambiguity and gets people to using your project as quickly as possible. If it only runs in a specific context like a particular programming language version or operating system or has dependencies that have to be installed manually, also add a Requirements subsection.
-
-## Usage
-Use examples liberally, and show the expected output if you can. It's helpful to have inline the smallest example of usage that you can demonstrate, while providing links to more sophisticated examples if they are too long to reasonably include in the README.
-
-## Support
-Tell people where they can go to for help. It can be any combination of an issue tracker, a chat room, an email address, etc.
-
-## Roadmap
-If you have ideas for releases in the future, it is a good idea to list them in the README.
-
-## Contributing
-State if you are open to contributions and what your requirements are for accepting them.
-
-For people who want to make changes to your project, it's helpful to have some documentation on how to get started. Perhaps there is a script that they should run or some environment variables that they need to set. Make these steps explicit. These instructions could also be useful to your future self.
-
-You can also document commands to lint the code or run tests. These steps help to ensure high code quality and reduce the likelihood that the changes inadvertently break something. Having instructions for running tests is especially helpful if it requires external setup, such as starting a Selenium server for testing in a browser.
-
-## Authors and acknowledgment
-Show your appreciation to those who have contributed to the project.
-
-## License
-For open source projects, say how it is licensed.
-
-## Project status
-If you have run out of energy or time for your project, put a note at the top of the README saying that development has slowed down or stopped completely. Someone may choose to fork your project or volunteer to step in as a maintainer or owner, allowing your project to keep going. You can also make an explicit request for maintainers.
+Os milestones iniciais são Fundação e contratos, Exploração/experimentos e seleção de evidências e Análise validada/narrativa final. Possíveis follow-ups incluem grafos de sobreposição entre gêneros e de artista–gênero, análise de sensibilidade para políticas de duplicatas e múltiplos gêneros, análise orientada por tempo se dados temporais forem adicionados e modelagem baseline de popularidade com avaliação group-aware. São hipóteses a investigar, não conclusões implícitas no CSV atual.

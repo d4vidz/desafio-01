@@ -1,0 +1,40 @@
+# Python and uv
+__pycache__/
+*.py[cod]
+.venv/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# Marimo/local tooling
+.marimo/
+**/__marimo__/
+.jupyter/
+.ipynb_checkpoints/
+*.ipynb
+
+# Ephemeral analytical databases: DuckDB must be recreated from the CSV.
+*.duckdb
+*.duckdb.wal
+*.db
+*.db.wal
+
+# Generated analytical outputs and caches
+data/processed/
+outputs/
+*.html
+*.png
+*.svg
+*.parquet
+
+# Committed Marimo review snapshots (regenerated with scripts/render_notebooks.py)
+!artifacts/
+!artifacts/notebooks/
+!artifacts/notebooks/html/
+!artifacts/notebooks/html/*.html
+
+# OS/editor files
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

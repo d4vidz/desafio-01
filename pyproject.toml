@@ -1,0 +1,35 @@
+[project]
+name = "spotify-track-analysis"
+version = "0.1.0"
+description = "Reproducible Spotify analysis with Marimo, DuckDB, and Polars"
+requires-python = ">=3.12"
+dependencies = [
+    "duckdb>=1.1,<2",
+    "marimo>=0.14,<1",
+    "matplotlib>=3.9,<4",
+    "nbformat>=5.10,<6",
+    "numpy>=2.0,<3",
+    "pandas>=2.2,<4",
+    "plotly>=5.24,<7",
+    "polars>=1.20,<2",
+    "pyarrow>=18,<25",
+    "scikit-learn>=1.5,<2",
+    "statsmodels>=0.14,<1",
+    "wigglystuff>=0.5.21,<0.6",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3,<9",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra"
+
+[tool.marimo.runtime]
+# Keep notebook cells responsive and prevent accidental huge render payloads.
+output_max_bytes = 5_000_000
+
+[tool.marimo]
+formatting = "lazy"
