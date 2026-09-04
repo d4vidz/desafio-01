@@ -1,3 +1,4 @@
+import hashlib
 import json
 
 from scripts.render_notebooks import (
@@ -7,6 +8,7 @@ from scripts.render_notebooks import (
     NOTEBOOK_METADATA,
     build_manifest,
     declared_evidence_statuses,
+    source_digest,
 )
 from scripts.update_molab_context import SNAPSHOT_PATTERN
 
@@ -59,3 +61,10 @@ def test_static_html_has_portuguese_reader_metadata():
         assert '<html lang="pt-BR">' in html
         assert f"<title>{title}</title>" in html
         assert f'content="{description}"' in html
+
+
+def test_notebook_source_digest_is_stable_across_line_endings(tmp_path):
+    notebook = tmp_path / "notebook.py"
+    notebook.write_bytes(b"first\r\nsecond\r\n")
+    expected = hashlib.sha256(b"first\nsecond\n").hexdigest()
+    assert source_digest(notebook) == expected

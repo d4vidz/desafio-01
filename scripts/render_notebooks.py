@@ -107,7 +107,7 @@ def render(notebook: Path, output: Path) -> list[str]:
 def source_digest(notebook: Path) -> str:
     """Return the digest used to tie a rendered artifact to its source."""
 
-    return hashlib.sha256(notebook.read_bytes()).hexdigest()
+    return file_digest(notebook, normalize_newlines=True)
 
 
 def file_digest(path: Path, *, normalize_newlines: bool = False) -> str:
