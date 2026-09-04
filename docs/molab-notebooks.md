@@ -27,9 +27,12 @@ workspace:
 O espelho público foi criado em
 [`d4vidz/desafio-01`](https://github.com/d4vidz/desafio-01). O GitLab continua
 sendo a origem canônica; o GitHub serve como superfície pública de preview e
-execução no Molab. O branch abaixo contém o commit de trabalho atual
-`35f72904a6e76ee61a5c9b9c28b072e25b59001e`. Os notebooks ainda baixam, de
-forma explícita, o contexto compartilhado pinado em
+execução no Molab. Os links abaixo apontam para o branch de trabalho,
+atualmente em `6e6887a4a088f31d39a9fb6fc23c6847aecda021`. O smoke test cloud
+foi executado quando o branch estava em `35f72904a6e76ee61a5c9b9c28b072e25b59001e`;
+o commit `6e6887a` alterou somente documentação e o manifesto de tradução, sem
+alterar os notebooks. Eles ainda baixam, de forma explícita, o contexto
+compartilhado pinado em
 `12f6f86d857b55ddd37ab0b1a575dfb49b7f3f36`; esse pin é a fronteira dos
 módulos/CSV usados pelo bootstrap, enquanto o código do notebook e os
 artefatos são lidos do branch.

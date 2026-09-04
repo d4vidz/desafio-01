@@ -26,9 +26,11 @@ available in the workspace:
 The public mirror is available at
 [`d4vidz/desafio-01`](https://github.com/d4vidz/desafio-01). GitLab remains the
 canonical source; GitHub is the public preview and Molab execution surface.
-The branch below contains the current working commit
-`35f72904a6e76ee61a5c9b9c28b072e25b59001e`. The notebooks still download the
-shared context explicitly pinned to
+The links below point to the working branch, currently at
+`6e6887a4a088f31d39a9fb6fc23c6847aecda021`. The cloud smoke test ran when the
+branch was at `35f72904a6e76ee61a5c9b9c28b072e25b59001e`; commit `6e6887a`
+changed documentation and the translation manifest only, without changing the
+notebooks. They still download the shared context explicitly pinned to
 `12f6f86d857b55ddd37ab0b1a575dfb49b7f3f36`; that pin is the bootstrap boundary
 for the modules/CSV, while notebook code and artifacts are read from the branch.
 
