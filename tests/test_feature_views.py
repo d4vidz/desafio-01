@@ -4,6 +4,7 @@ import polars as pl
 from spotify_data import (
     add_semantic_features,
     bh_fdr,
+    deterministic_sample,
     fit_genre_ppmi,
     genre_audio_profiles,
     genre_membership_matrix,
@@ -22,6 +23,23 @@ def test_semantic_feature_view_is_deterministic_and_circular_key_is_encoded():
     assert np.isclose(result[0, "key_cos"], result[1, "key_cos"])
     assert result.schema["log_duration_ms"] == pl.Float64
     assert result[0, "explicit_binary"] == 1
+
+
+def test_seeded_sample_is_independent_of_input_physical_order():
+    frame = pl.DataFrame({"track_id": ["c", "a", "d", "b"], "value": [3, 1, 4, 2]})
+    first = deterministic_sample(frame, 3, seed=2026)
+    second = deterministic_sample(frame.reverse(), 3, seed=2026)
+    assert first.to_dicts() == second.to_dicts()
+
+
+def test_deterministic_sample_rejects_missing_keys():
+    frame = pl.DataFrame({"value": [1, 2]})
+    try:
+        deterministic_sample(frame, 1, seed=2026)
+    except ValueError as error:
+        assert "track_id" in str(error)
+    else:
+        raise AssertionError("Expected a missing deterministic key to fail")
 
 
 def test_genre_matrix_has_explicit_vocabulary_and_oov_zero_rows():

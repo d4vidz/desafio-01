@@ -56,8 +56,9 @@ def _():
     from sklearn.preprocessing import RobustScaler, StandardScaler
     from spotify_data import (CONTINUOUS_AUDIO_FEATURES, EvidenceStatus,
                               NarrativeSection, build_data_layer,
-                              clustering_stability, render_narrative_section)
-    return CONTINUOUS_AUDIO_FEATURES, EvidenceStatus, NarrativeSection, PCA, Path, RobustScaler, StandardScaler, build_data_layer, clustering_stability, go, mo, np, pl, render_narrative_section, root
+                              clustering_stability, deterministic_sample,
+                              render_narrative_section)
+    return CONTINUOUS_AUDIO_FEATURES, EvidenceStatus, NarrativeSection, PCA, Path, RobustScaler, StandardScaler, build_data_layer, clustering_stability, deterministic_sample, go, mo, np, pl, render_narrative_section, root
 
 
 @app.cell
@@ -71,10 +72,10 @@ def _(Path, build_data_layer, mo, root):
 
 
 @app.cell
-def _(CONTINUOUS_AUDIO_FEATURES, PCA, RobustScaler, StandardScaler, mo, np, pl, tracks):
+def _(CONTINUOUS_AUDIO_FEATURES, PCA, RobustScaler, StandardScaler, deterministic_sample, mo, np, pl, tracks):
     features = list(CONTINUOUS_AUDIO_FEATURES)
     frame = tracks.select(["track_id", "representative_track_genre", *features]).drop_nulls()
-    frame = frame.sample(n=min(6_000, frame.height), seed=2026)
+    frame = deterministic_sample(frame, 6_000, seed=2026)
     standard = StandardScaler().fit_transform(frame.select(features).to_numpy())
     robust_scaled = RobustScaler().fit_transform(frame.select(features).to_numpy())
     pca = PCA(n_components=3, random_state=2026).fit(standard)
@@ -86,8 +87,8 @@ def _(CONTINUOUS_AUDIO_FEATURES, PCA, RobustScaler, StandardScaler, mo, np, pl, 
 
 
 @app.cell
-def _(EvidenceStatus, NarrativeSection, go, loadings, mo, pca_frame, render_narrative_section, variance):
-    plot = pca_frame.sample(n=min(4_000, pca_frame.height), seed=2026)
+def _(EvidenceStatus, NarrativeSection, deterministic_sample, go, loadings, mo, pca_frame, render_narrative_section, variance):
+    plot = deterministic_sample(pca_frame, 4_000, seed=2026)
     fig = go.Figure(go.Scattergl(x=plot["PC1"].to_numpy(), y=plot["PC2"].to_numpy(), mode="markers", marker={"size": 5, "opacity": 0.45, "color": plot["PC3"].to_numpy(), "colorscale": "Viridis", "colorbar": {"title": "PC3"}}, text=plot["representative_track_genre"].to_list(), hovertemplate="gênero=%{text}<br>PC1=%{x:.2f}<br>PC2=%{y:.2f}<extra></extra>"))
     fig.update_layout(title="PCA 2D — cor por PC3; amostra bounded", height=520, template="plotly_white")
     pca_narrative = NarrativeSection(

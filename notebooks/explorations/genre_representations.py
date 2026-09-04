@@ -195,7 +195,7 @@ def _(EvidenceStatus, NarrativeSection, artists, db, mo, pl, render_narrative_se
     leaves = db.execute("""
         WITH genre_counts AS (SELECT track_id, COUNT(DISTINCT track_genre) AS k_genre FROM track_genres GROUP BY 1),
         artist_counts AS (SELECT track_id, COUNT(DISTINCT artist) AS k_artist FROM track_artists GROUP BY 1),
-        top_genres AS (SELECT track_genre FROM track_genres GROUP BY 1 ORDER BY COUNT(DISTINCT track_id) DESC LIMIT 3),
+        top_genres AS (SELECT track_genre FROM track_genres GROUP BY 1 ORDER BY COUNT(DISTINCT track_id) DESC, track_genre LIMIT 3),
         ranked_artists AS (
           SELECT tg.track_genre, ta.artist, SUM(1.0/(gc.k_genre*ac.k_artist)) AS area,
                  ROW_NUMBER() OVER (PARTITION BY tg.track_genre ORDER BY SUM(1.0/(gc.k_genre*ac.k_artist)) DESC, ta.artist) AS artist_rank

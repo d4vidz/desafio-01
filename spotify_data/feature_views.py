@@ -25,6 +25,22 @@ HUMAN_AUDIO_FEATURES = (
 CATEGORICAL_FEATURES = ("explicit", "key", "mode", "time_signature")
 
 
+def deterministic_sample(
+    frame: pl.DataFrame,
+    n: int,
+    *,
+    seed: int,
+    key_columns: tuple[str, ...] = ("track_id",),
+) -> pl.DataFrame:
+    """Sample rows after imposing a stable relational order."""
+
+    missing = [column for column in key_columns if column not in frame.columns]
+    if missing:
+        raise ValueError(f"Deterministic sample keys are missing: {missing}")
+    ordered = frame.sort(list(key_columns))
+    return ordered.sample(n=min(n, ordered.height), seed=seed)
+
+
 def _weighted_quantile(values: np.ndarray, weights: np.ndarray, quantile: float) -> float:
     order = np.argsort(values)
     ordered_values = values[order]
