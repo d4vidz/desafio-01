@@ -119,6 +119,19 @@ def file_digest(path: Path, *, normalize_newlines: bool = False) -> str:
     return hashlib.sha256(content).hexdigest()
 
 
+def normalized_text_size(path: Path) -> int:
+    """Return the byte size of a text artifact with canonical LF newlines."""
+
+    return len(path.read_bytes().replace(b"\r\n", b"\n"))
+
+
+def write_text_lf(path: Path, content: str) -> None:
+    """Write text with LF newlines on every supported operating system."""
+
+    with path.open("w", encoding="utf-8", newline="\n") as stream:
+        stream.write(content)
+
+
 def git_value(*args: str) -> str | None:
     """Read bounded repository metadata without making rendering depend on Git."""
 
@@ -182,8 +195,8 @@ def build_manifest(
                 "html": html.relative_to(ROOT).as_posix()
                 if html_directory == HTML_DIR
                 else html.name,
-                "html_sha256": file_digest(html),
-                "html_bytes": html.stat().st_size,
+                "html_sha256": file_digest(html, normalize_newlines=True),
+                "html_bytes": normalized_text_size(html),
                 "declared_evidence_statuses": statuses,
                 "execution_status": outcome.get("execution_status", "passed"),
                 "warnings": outcome.get("warnings", []),
@@ -218,9 +231,9 @@ def write_manifest(
     outcomes: dict[str, dict[str, object]] | None = None,
 ) -> None:
     destination.parent.mkdir(parents=True, exist_ok=True)
-    destination.write_text(
+    write_text_lf(
+        destination,
         json.dumps(build_manifest(html_directory, outcomes), ensure_ascii=False, indent=2) + "\n",
-        encoding="utf-8",
     )
 
 
@@ -237,7 +250,7 @@ def stamp_snapshot(output: Path, notebook: Path) -> None:
     )
     body = re.sub(r"<title>.*?</title>", f"<title>{title}</title>", body, count=1)
     marker = f"<!-- canonical-notebook-sha256: {source_digest(notebook)} -->\n"
-    output.write_text(marker + body, encoding="utf-8")
+    write_text_lf(output, marker + body)
 
 
 def snapshot_digest(path: Path) -> str | None:

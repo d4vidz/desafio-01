@@ -1,6 +1,7 @@
 import hashlib
 import json
 
+import scripts.render_notebooks as render_notebooks
 from scripts.render_notebooks import (
     HTML_DIR,
     MANIFEST_PATH,
@@ -68,3 +69,34 @@ def test_notebook_source_digest_is_stable_across_line_endings(tmp_path):
     notebook.write_bytes(b"first\r\nsecond\r\n")
     expected = hashlib.sha256(b"first\nsecond\n").hexdigest()
     assert source_digest(notebook) == expected
+
+
+def test_manifest_artifact_provenance_is_stable_across_line_endings(monkeypatch, tmp_path):
+    notebook = tmp_path / "notebook.py"
+    notebook.write_text(
+        'EvidenceStatus.INFRASTRUCTURE\n__generated_with = "0.24.0"\n',
+        encoding="utf-8",
+    )
+    source = tmp_path / "source.csv"
+    source.write_text("id\n1\n", encoding="utf-8")
+    lock = tmp_path / "uv.lock"
+    lock.write_text("lock\n", encoding="utf-8")
+    html_directory = tmp_path / "html"
+    html_directory.mkdir()
+    html = html_directory / "notebook.html"
+    html.write_bytes(b"<p>first</p>\r\n<p>second</p>\r\n")
+    canonical = b"<p>first</p>\n<p>second</p>\n"
+
+    monkeypatch.setattr(render_notebooks, "ROOT", tmp_path)
+    monkeypatch.setattr(render_notebooks, "NOTEBOOKS", (notebook,))
+    monkeypatch.setattr(render_notebooks, "SOURCE_PATH", source)
+    monkeypatch.setattr(render_notebooks, "LOCK_PATH", lock)
+    monkeypatch.setattr(
+        render_notebooks,
+        "NOTEBOOK_METADATA",
+        {"notebook": ("Notebook", "Description")},
+    )
+
+    entry = render_notebooks.build_manifest(html_directory)["notebooks"][0]
+    assert entry["html_sha256"] == hashlib.sha256(canonical).hexdigest()
+    assert entry["html_bytes"] == len(canonical)
