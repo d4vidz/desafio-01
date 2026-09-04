@@ -27,24 +27,29 @@ The public mirror is available at
 [`d4vidz/desafio-01`](https://github.com/d4vidz/desafio-01). GitLab remains the
 canonical source; GitHub is the public preview and Molab execution surface.
 The branch below contains the current working commit
-`12f6f86d857b55ddd37ab0b1a575dfb49b7f3f36`:
+`35f72904a6e76ee61a5c9b9c28b072e25b59001e`. The notebooks still download the
+shared context explicitly pinned to
+`12f6f86d857b55ddd37ab0b1a575dfb49b7f3f36`; that pin is the bootstrap boundary
+for the modules/CSV, while notebook code and artifacts are read from the branch.
 
-| Notebook | Contextual Molab preview | Verification on 2026-09-02 (BRT) |
-| --- | --- | --- |
-| Data contract audit | [open](https://molab.marimo.io/github/d4vidz/desafio-01/blob/chore/45-versionar-governanca-e-analises/notebooks/data_contract_audit.py) | HTTP route 200; runtime pending |
-| Popularity associations | [open](https://molab.marimo.io/github/d4vidz/desafio-01/blob/chore/45-versionar-governanca-e-analises/notebooks/explorations/popularity_associations.py) | HTTP route 200; runtime pending |
-| Genre representations and graphs | [open](https://molab.marimo.io/github/d4vidz/desafio-01/blob/chore/45-versionar-governanca-e-analises/notebooks/explorations/genre_representations.py) | HTTP route 200; runtime pending |
-| Musical structure | [open](https://molab.marimo.io/github/d4vidz/desafio-01/blob/chore/45-versionar-governanca-e-analises/notebooks/explorations/musical_structure.py) | HTTP route 200; runtime pending |
-| Predictive validation and fingerprints | [open](https://molab.marimo.io/github/d4vidz/desafio-01/blob/chore/45-versionar-governanca-e-analises/notebooks/explorations/popularity_validation.py) | HTTP route 200; runtime pending |
-| Integrating analysis | [open](https://molab.marimo.io/github/d4vidz/desafio-01/blob/chore/45-versionar-governanca-e-analises/notebooks/spotify_analysis.py) | HTTP route 200; runtime pending |
+| Notebook | Contextual Molab preview | Shared runtime | Verification on 2026-09-03 (BRT) |
+| --- | --- | --- | --- |
+| Data contract audit | [open](https://molab.marimo.io/github/d4vidz/desafio-01/blob/chore/45-versionar-governanca-e-analises/notebooks/data_contract_audit.py) | [open runtime](https://molab.marimo.io/github/d4vidz/desafio-01/blob/chore/45-versionar-governanca-e-analises/notebooks/data_contract_audit.py/server) | open; cells rendered; no visible error |
+| Popularity associations | [open](https://molab.marimo.io/github/d4vidz/desafio-01/blob/chore/45-versionar-governanca-e-analises/notebooks/explorations/popularity_associations.py) | [open runtime](https://molab.marimo.io/github/d4vidz/desafio-01/blob/chore/45-versionar-governanca-e-analises/notebooks/explorations/popularity_associations.py/server) | open; cells rendered; no visible error |
+| Genre representations and graphs | [open](https://molab.marimo.io/github/d4vidz/desafio-01/blob/chore/45-versionar-governanca-e-analises/notebooks/explorations/genre_representations.py) | [open runtime](https://molab.marimo.io/github/d4vidz/desafio-01/blob/chore/45-versionar-governanca-e-analises/notebooks/explorations/genre_representations.py/server) | open; cells rendered; no visible error |
+| Musical structure | [open](https://molab.marimo.io/github/d4vidz/desafio-01/blob/chore/45-versionar-governanca-e-analises/notebooks/explorations/musical_structure.py) | [open runtime](https://molab.marimo.io/github/d4vidz/desafio-01/blob/chore/45-versionar-governanca-e-analises/notebooks/explorations/musical_structure.py/server) | open; cells rendered; no visible error |
+| Predictive validation and fingerprints | [open](https://molab.marimo.io/github/d4vidz/desafio-01/blob/chore/45-versionar-governanca-e-analises/notebooks/explorations/popularity_validation.py) | [open runtime](https://molab.marimo.io/github/d4vidz/desafio-01/blob/chore/45-versionar-governanca-e-analises/notebooks/explorations/popularity_validation.py/server) | open; cells rendered; no visible error |
+| Integrating analysis | [open](https://molab.marimo.io/github/d4vidz/desafio-01/blob/chore/45-versionar-governanca-e-analises/notebooks/spotify_analysis.py) | [open runtime](https://molab.marimo.io/github/d4vidz/desafio-01/blob/chore/45-versionar-governanca-e-analises/notebooks/spotify_analysis.py/server) | open; scorecard rendered; `Errors: 0` panel |
 
 The HTTP test confirmed that Molab recognizes all six paths and returns each
-notebook title. A runtime must be started with “Run it now” before it is marked
-verified; HTTP 200 alone does not prove execution. The interactive execution
-observed in this revision showed that the preview has a temporary workspace and
+notebook title. In this revision, “Run it now” was started for every path; a
+Luna agent observed the cells, dependencies, CSV access, rendering, and absence
+of tracebacks. The integrator's `Errors` panel showed zero. This is a cloud
+smoke test of the branch, not a replacement for CI or analytical review: HTTP
+200 alone does not prove execution. The preview has a temporary workspace and
 does not automatically mount the repository tree. Each notebook bootstrap
 downloads the shared pinned context above and checks the CSV hash before
-importing modules.
+importing the modules.
 
 This flow creates one link per notebook, all pointing to the same repository
 and branch; it does not create one file browser that switches notebooks inside
