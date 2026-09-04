@@ -2,8 +2,11 @@
 
 from __future__ import annotations
 
+from hashlib import sha256
+
 import numpy as np
 import polars as pl
+import statsmodels.api as sm
 
 
 def holm_adjust(p_values: list[float] | np.ndarray) -> np.ndarray:
@@ -61,3 +64,68 @@ def random_effects_pool(estimates: pl.DataFrame) -> dict[str, float]:
         "tau2": tau2,
         "n": float(len(y)),
     }
+
+
+def artist_partition(artists: list[str] | np.ndarray, *, salt: str = "spotify-v0.1") -> np.ndarray:
+    """Assign artists reproducibly to discovery (0) or confirmation (1).
+
+    Hashing the grouping unit, rather than rows, prevents tracks by one artist
+    from leaking across the two hypothesis stages and is stable across runs.
+    """
+
+    return np.asarray(
+        [int(sha256(f"{salt}:{artist}".encode("utf-8")).hexdigest(), 16) % 2 for artist in artists],
+        dtype=np.int8,
+    )
+
+
+def fit_clustered_ols(
+    frame: pl.DataFrame,
+    *,
+    outcome: str,
+    features: list[str],
+    controls: list[str],
+    group: str,
+) -> tuple[sm.regression.linear_model.RegressionResultsWrapper, list[str]]:
+    """Fit a deterministic OLS with small categorical controls and clustered SEs.
+
+    Numeric feature columns are standardized within the supplied frame. The
+    caller owns the population (for example, confirmation or one genre).
+    ``controls`` may contain numeric columns and a low-cardinality integer
+    categorical ``time_signature``.
+    """
+
+    required = [outcome, *features, *controls, group]
+    clean = frame.drop_nulls(required)
+    numeric = clean.select(features).to_numpy().astype(float)
+    means = numeric.mean(axis=0)
+    scales = np.where(numeric.std(axis=0) > 0, numeric.std(axis=0), 1.0)
+    parts = [(numeric - means) / scales]
+    names = list(features)
+    for column in controls:
+        values = clean[column].to_numpy()
+        if column == "time_signature":
+            levels = sorted(set(values.tolist()))
+            parts.extend([(values == level).astype(float)[:, None] for level in levels[1:]])
+            names.extend([f"{column}[{level}]" for level in levels[1:]])
+        else:
+            # A subgroup can have a constant control (for example, all tracks
+            # may share one mode).  Keeping it alongside the intercept creates
+            # a rank-deficient design and unstable coefficient estimates.
+            if np.unique(values).size > 1:
+                parts.append(values.astype(float)[:, None])
+                names.append(column)
+    design = sm.add_constant(np.column_stack(parts), has_constant="add")
+    result = sm.OLS(clean[outcome].to_numpy().astype(float), design).fit(
+        cov_type="cluster", cov_kwds={"groups": clean[group].to_numpy()}
+    )
+    return result, names
+
+
+def joint_wald_test(result: sm.regression.linear_model.RegressionResultsWrapper, n_features: int) -> float:
+    """Return the p-value for the joint null that the first feature block is zero."""
+
+    restriction = np.zeros((n_features, len(result.params)))
+    restriction[:, 1 : n_features + 1] = np.eye(n_features)
+    test = result.wald_test(restriction, scalar=False)
+    return float(np.asarray(test.pvalue).reshape(-1)[0])

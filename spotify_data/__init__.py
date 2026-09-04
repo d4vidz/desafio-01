@@ -38,7 +38,14 @@ from .feature_views import (
     genre_membership_matrix,
     robust_pca_profiles,
 )
-from .statistics import bh_fdr, holm_adjust, random_effects_pool
+from .statistics import (
+    artist_partition,
+    bh_fdr,
+    fit_clustered_ols,
+    holm_adjust,
+    joint_wald_test,
+    random_effects_pool,
+)
 from .clustering import clustering_stability
 from .notebook_ui import EvidenceStatus, NarrativeSection, render_narrative_section
 
@@ -78,6 +85,9 @@ __all__ = [
     "bh_fdr",
     "holm_adjust",
     "random_effects_pool",
+    "artist_partition",
+    "fit_clustered_ols",
+    "joint_wald_test",
     "clustering_stability",
     "EvidenceStatus",
     "NarrativeSection",
