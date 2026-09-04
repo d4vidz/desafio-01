@@ -1,5 +1,6 @@
 import numpy as np
 import polars as pl
+from pathlib import Path
 
 from spotify_data import (
     add_semantic_features,
@@ -10,6 +11,7 @@ from spotify_data import (
     genre_membership_matrix,
     holm_adjust,
     random_effects_pool,
+    build_data_layer,
 )
 from spotify_data.clustering import clustering_stability
 from spotify_data.feature_views import _ppmi_from_cooccurrence
@@ -30,6 +32,43 @@ def test_seeded_sample_is_independent_of_input_physical_order():
     first = deterministic_sample(frame, 3, seed=2026)
     second = deterministic_sample(frame.reverse(), 3, seed=2026)
     assert first.to_dicts() == second.to_dicts()
+
+
+def test_seeded_sample_breaks_duplicate_key_ties_from_row_content():
+    frame = pl.DataFrame({"track_id": ["a", "a", "b", "c"], "value": [2, 1, 3, 4]})
+    first = deterministic_sample(frame, 3, seed=2026)
+    second = deterministic_sample(frame.reverse(), 3, seed=2026)
+    assert first.to_dicts() == second.to_dicts()
+
+
+def test_seeded_sample_is_stable_across_duckdb_reconstructions():
+    csv_path = Path(__file__).resolve().parents[1] / "data" / "raw" / "spotify_tracks.csv"
+    samples = []
+    for _ in range(5):
+        layer = build_data_layer(csv_path)
+        try:
+            tracks = layer.connection.execute("SELECT track_id, popularity FROM tracks").pl()
+            samples.append(
+                deterministic_sample(tracks, 250, seed=2026)
+                .get_column("track_id")
+                .to_list()
+            )
+        finally:
+            layer.connection.close()
+    assert all(sample == samples[0] for sample in samples[1:])
+
+
+def test_best_model_summary_uses_model_name_as_tie_breaker():
+    from spotify_data.evaluation import best_model_summary
+
+    summary = pl.DataFrame(
+        {
+            "split": ["principal", "principal"],
+            "modelo": ["zeta", "alfa"],
+            "MAE_medio": [10.0, 10.0],
+        }
+    )
+    assert best_model_summary(summary, "principal").model == "alfa"
 
 
 def test_deterministic_sample_rejects_missing_keys():

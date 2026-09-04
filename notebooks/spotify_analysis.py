@@ -302,7 +302,7 @@ def _(KMeans, PCA, StandardScaler, calinski_harabasz_score, davies_bouldin_score
                      "davies_bouldin": davies_bouldin_score(scaled, labels),
                      "calinski_harabasz": calinski_harabasz_score(scaled, labels)})
     cluster_metrics = pl.DataFrame(_cluster_rows).with_columns(pl.all().exclude("k").round(3))
-    best_k = int(cluster_metrics.sort("silhouette", descending=True)[0, "k"])
+    best_k = int(cluster_metrics.sort(["silhouette", "k"], descending=[True, False])[0, "k"])
     pframe = psrc.with_columns(pl.Series("PC1", pcs[:, 0]), pl.Series("PC2", pcs[:, 1]),
                               pl.Series("PC3", pcs[:, 2]), pl.Series("cluster", labels_by_k[best_k]))
     variance = pl.DataFrame({"PC": [1, 2, 3], "variância_explicada": pca.explained_variance_ratio_})
@@ -462,7 +462,7 @@ def _(GroupShuffleSplit, HistGradientBoostingRegressor, ShuffleSplit, db, determ
     results=pl.DataFrame(_model_rows)
     summary=results.group_by(["split","modelo"]).agg(pl.mean("MAE").alias("MAE_média"),
       pl.quantile("MAE",.1).alias("MAE_p10"),pl.quantile("MAE",.9).alias("MAE_p90"),
-      pl.mean("RMSE").alias("RMSE_média"),pl.mean("R2").alias("R2_médio")).sort(["split","MAE_média"]).with_columns(pl.all().exclude(["split","modelo"]).round(3))
+      pl.mean("RMSE").alias("RMSE_média"),pl.mean("R2").alias("R2_médio")).sort(["split","MAE_média","modelo"]).with_columns(pl.all().exclude(["split","modelo"]).round(3))
     return results, summary
 
 

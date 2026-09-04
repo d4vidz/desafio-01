@@ -32,12 +32,19 @@ def deterministic_sample(
     seed: int,
     key_columns: tuple[str, ...] = ("track_id",),
 ) -> pl.DataFrame:
-    """Sample rows after imposing a stable relational order."""
+    """Sample rows after imposing a stable total order.
+
+    The declared keys identify the intended grain. Remaining columns provide
+    deterministic tie-breakers when that grain is unexpectedly duplicated.
+    Exact duplicate rows are interchangeable and therefore need no further
+    tie-breaker.
+    """
 
     missing = [column for column in key_columns if column not in frame.columns]
     if missing:
         raise ValueError(f"Deterministic sample keys are missing: {missing}")
-    ordered = frame.sort(list(key_columns))
+    tie_breakers = sorted(column for column in frame.columns if column not in key_columns)
+    ordered = frame.sort([*key_columns, *tie_breakers])
     return ordered.sample(n=min(n, ordered.height), seed=seed)
 
 

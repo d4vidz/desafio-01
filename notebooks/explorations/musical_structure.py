@@ -136,7 +136,10 @@ def _(EvidenceStatus, NarrativeSection, clustering_stability, mo, render_narrati
 
 @app.cell
 def _(EvidenceStatus, NarrativeSection, mo, pca_frame, render_narrative_section, stability):
-    best = stability.sort(["gate_ari", "ARI_mediana", "silhouette"], descending=True).head(1)
+    best = stability.sort(
+        ["gate_ari", "ARI_mediana", "silhouette", "algoritmo", "k"],
+        descending=[True, True, True, False, False],
+    ).head(1)
     brief = NarrativeSection(
         title="Evidence brief da estrutura musical",
         question="O que já podemos afirmar com segurança sobre esta exploração?",
