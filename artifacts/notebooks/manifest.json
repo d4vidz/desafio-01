@@ -6,13 +6,13 @@
     "contract_version": "0.1"
   },
   "repository": {
-    "commit_at_render": "2e71407b19d8974f17e080888983d7bfe46ad0fd",
-    "ref_at_render": "fix/77-deterministic-ordering",
+    "commit_at_render": "2b03819225f58bee8ab4cf024dcf0429cf676763",
+    "ref_at_render": "analysis/33-popularity-associations",
     "working_tree_dirty_at_render": false,
     "environment_lock_sha256": "7da63cbb28af87881fc375c1e1c8ea702f547d7d4140697f034b5d9707e55271"
   },
   "environment": {
-    "python": "3.12.13",
+    "python": "3.13.13",
     "marimo": "0.24.0",
     "platform": "Windows-11-10.0.26200-SP0"
   },
@@ -37,10 +37,10 @@
     },
     {
       "notebook": "notebooks/explorations/popularity_associations.py",
-      "notebook_sha256": "49d313342f0a07702e6fa5d305eb2759c03dbaa410f381264f18d7199d1fa837",
+      "notebook_sha256": "e554c2871af6de4dc2475e9b4230b14093cec14343461cf90947eb820c7adb6c",
       "html": "artifacts/notebooks/html/popularity_associations.html",
-      "html_sha256": "61b6509ba13bc965eecdd882d49554e37717b5313a3ecf513bfcc30ed918a18e",
-      "html_bytes": 1106960,
+      "html_sha256": "4ce68bd8715cc26e835f333256df0c52f2f3b5946fa369539697fec893967ecd",
+      "html_bytes": 1123712,
       "declared_evidence_statuses": [
         "protótipo"
       ],
