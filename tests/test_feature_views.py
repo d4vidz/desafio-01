@@ -263,3 +263,19 @@ def test_clustering_stability_returns_both_algorithms_and_gate_columns():
         result.columns
     )
     assert (result["gate_robusto"] <= result["gate_ari"]).all()
+    assert (
+        result["gate_robusto"]
+        == (result["gate_ari"] & result["gate_separacao"])
+    ).all()
+    repeated = clustering_stability(
+        matrix, k_values=range(2, 3), repeats=2, null_repeats=4
+    )
+    assert result.equals(repeated)
+
+
+def test_clustering_stability_enforces_bounded_requests():
+    matrix = np.arange(60, dtype=float).reshape(20, 3)
+    with pytest.raises(ValueError, match="bounded"):
+        clustering_stability(matrix, repeats=101)
+    with pytest.raises(ValueError, match="2..12"):
+        clustering_stability(matrix, k_values=range(2, 14))

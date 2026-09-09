@@ -31,11 +31,16 @@ def clustering_stability(
         raise ValueError("matrix must contain at least three rows")
     if repeats < 1 or null_repeats < 1:
         raise ValueError("repeats and null_repeats must be at least 1")
+    if repeats > 100 or null_repeats > 200 or sample_size > 20_000:
+        raise ValueError("clustering stability request exceeds bounded limits")
+    requested_k = tuple(k_values)
+    if not requested_k or min(requested_k) < 2 or max(requested_k) > 12:
+        raise ValueError("k_values must stay within the bounded range 2..12")
     rng = np.random.default_rng(seed)
     if len(values) > sample_size:
         values = values[rng.choice(len(values), sample_size, replace=False)]
     rows: list[dict[str, float | int | str]] = []
-    for k in k_values:
+    for k in requested_k:
         for algorithm in ("kmeans", "gmm"):
             def fit(data: np.ndarray):
                 if algorithm == "kmeans":
@@ -56,7 +61,10 @@ def clustering_stability(
             for repeat in range(repeats):
                 indices = rng.choice(len(values), len(values), replace=True)
                 bootstrap = fit(values[indices])
-                aris.append(adjusted_rand_score(base_labels[indices], bootstrap.predict(values[indices])))
+                # Evaluate every refit on the same fixed population. Comparing
+                # on the resampled training rows would make stability
+                # optimistically in-sample and overweight duplicate draws.
+                aris.append(adjusted_rand_score(base_labels, bootstrap.predict(values)))
             null_silhouettes = []
             for _ in range(null_repeats):
                 reference = np.column_stack(
