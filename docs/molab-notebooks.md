@@ -24,7 +24,8 @@ do branch em `35f72904a6e76ee61a5c9b9c28b072e25b59001e`; os commits posteriores
 `6e6887a` e `ca319a6` alteraram somente documentação e o manifesto de
 tradução, sem alterar os notebooks. Eles baixam, de forma explícita, o
 contexto compartilhado pinado em
-`12f6f86d857b55ddd37ab0b1a575dfb49b7f3f36`; esse pin é a fronteira dos
+`405a0d58b513eaeb8daeac4d2b2b98a65e57a963`; esse pin inclui o helper de
+amostragem determinística validado na #77 e é a fronteira dos
 módulos/CSV usados pelo bootstrap, enquanto o código do notebook e os
 artefatos são lidos do branch.
 
@@ -33,7 +34,7 @@ artefatos são lidos do branch.
 | Auditoria do contrato | [abrir](https://molab.marimo.io/github/d4vidz/desafio-01/blob/main/notebooks/data_contract_audit.py) | [abrir runtime](https://molab.marimo.io/github/d4vidz/desafio-01/blob/main/notebooks/data_contract_audit.py/server) | aberto; células renderizadas; nenhum erro visível |
 | Associações de popularidade | [abrir](https://molab.marimo.io/github/d4vidz/desafio-01/blob/main/notebooks/explorations/popularity_associations.py) | [abrir runtime](https://molab.marimo.io/github/d4vidz/desafio-01/blob/main/notebooks/explorations/popularity_associations.py/server) | aberto; células renderizadas; nenhum erro visível |
 | Representações de gênero e grafos | [abrir](https://molab.marimo.io/github/d4vidz/desafio-01/blob/main/notebooks/explorations/genre_representations.py) | [abrir runtime](https://molab.marimo.io/github/d4vidz/desafio-01/blob/main/notebooks/explorations/genre_representations.py/server) | aberto; células renderizadas; nenhum erro visível |
-| Estrutura musical | [abrir](https://molab.marimo.io/github/d4vidz/desafio-01/blob/main/notebooks/explorations/musical_structure.py) | [abrir runtime](https://molab.marimo.io/github/d4vidz/desafio-01/blob/main/notebooks/musical_structure.py/server) | aberto; células renderizadas; nenhum erro visível |
+| Estrutura musical | [abrir](https://molab.marimo.io/github/d4vidz/desafio-01/blob/main/notebooks/explorations/musical_structure.py) | [abrir runtime](https://molab.marimo.io/github/d4vidz/desafio-01/blob/main/notebooks/explorations/musical_structure.py/server) | aberto; células renderizadas; nenhum erro visível |
 | Validação preditiva e fingerprints | [abrir](https://molab.marimo.io/github/d4vidz/desafio-01/blob/main/notebooks/explorations/popularity_validation.py) | [abrir runtime](https://molab.marimo.io/github/d4vidz/desafio-01/blob/main/notebooks/explorations/popularity_validation.py/server) | aberto; células renderizadas; nenhum erro visível |
 | Análise integradora | [abrir](https://molab.marimo.io/github/d4vidz/desafio-01/blob/main/notebooks/spotify_analysis.py) | [abrir runtime](https://molab.marimo.io/github/d4vidz/desafio-01/blob/main/notebooks/spotify_analysis.py/server) | aberto; scorecard renderizado; painel `Errors: 0` |
 

@@ -95,7 +95,7 @@ def summarize_metrics(results: pl.DataFrame) -> pl.DataFrame:
             pl.col("RMSE").mean().alias("RMSE_medio"),
             pl.col("R2").mean().alias("R2_medio"),
         )
-        .sort(["split", "MAE_medio"])
+        .sort(["split", "MAE_medio", "modelo"])
         .with_columns(pl.all().exclude(["split", "modelo"]).round(3))
     )
 
@@ -103,7 +103,7 @@ def summarize_metrics(results: pl.DataFrame) -> pl.DataFrame:
 def best_model_summary(summary: pl.DataFrame, split: str) -> ModelSummary:
     """Return the lowest-MAE model without exposing notebook code to schema strings."""
 
-    candidates = summary.filter(pl.col("split") == split).sort("MAE_medio")
+    candidates = summary.filter(pl.col("split") == split).sort(["MAE_medio", "modelo"])
     if candidates.is_empty():
         raise ValueError(f"No model summary rows for split: {split}")
     row = candidates.row(0, named=True)

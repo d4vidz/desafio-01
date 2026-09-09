@@ -25,6 +25,29 @@ HUMAN_AUDIO_FEATURES = (
 CATEGORICAL_FEATURES = ("explicit", "key", "mode", "time_signature")
 
 
+def deterministic_sample(
+    frame: pl.DataFrame,
+    n: int,
+    *,
+    seed: int,
+    key_columns: tuple[str, ...] = ("track_id",),
+) -> pl.DataFrame:
+    """Sample rows after imposing a stable total order.
+
+    The declared keys identify the intended grain. Remaining columns provide
+    deterministic tie-breakers when that grain is unexpectedly duplicated.
+    Exact duplicate rows are interchangeable and therefore need no further
+    tie-breaker.
+    """
+
+    missing = [column for column in key_columns if column not in frame.columns]
+    if missing:
+        raise ValueError(f"Deterministic sample keys are missing: {missing}")
+    tie_breakers = sorted(column for column in frame.columns if column not in key_columns)
+    ordered = frame.sort([*key_columns, *tie_breakers])
+    return ordered.sample(n=min(n, ordered.height), seed=seed)
+
+
 def _weighted_quantile(values: np.ndarray, weights: np.ndarray, quantile: float) -> float:
     order = np.argsort(values)
     ordered_values = values[order]

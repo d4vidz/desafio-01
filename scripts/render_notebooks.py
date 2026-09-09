@@ -150,6 +150,20 @@ def git_value(*args: str) -> str | None:
     return value if result.returncode == 0 and value else None
 
 
+def source_working_tree_dirty() -> bool:
+    """Report source/configuration changes while ignoring generated snapshots."""
+
+    return bool(
+        git_value(
+            "status",
+            "--porcelain",
+            "--",
+            ".",
+            ":(exclude)artifacts/notebooks/**",
+        )
+    )
+
+
 def declared_evidence_statuses(notebook: Path) -> list[str]:
     """Return EvidenceStatus members declared by a notebook, in source order."""
 
@@ -213,7 +227,7 @@ def build_manifest(
         "repository": {
             "commit_at_render": os.environ.get("CI_COMMIT_SHA") or git_value("rev-parse", "HEAD"),
             "ref_at_render": os.environ.get("CI_COMMIT_REF_NAME") or git_value("branch", "--show-current"),
-            "working_tree_dirty_at_render": bool(git_value("status", "--porcelain")),
+            "working_tree_dirty_at_render": source_working_tree_dirty(),
             "environment_lock_sha256": file_digest(LOCK_PATH),
         },
         "environment": {

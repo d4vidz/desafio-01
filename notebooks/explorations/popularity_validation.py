@@ -30,7 +30,7 @@ def _():
         with ZipFile(bundle_path) as bundle:
             bundle.extractall(root)
     if not (root / "spotify_data").exists():
-        snapshot = "12f6f86d857b55ddd37ab0b1a575dfb49b7f3f36"
+        snapshot = "405a0d58b513eaeb8daeac4d2b2b98a65e57a963"
         snapshot_root = root / f"desafio-01-{snapshot}"
         if not snapshot_root.exists():
             archive_path = root / f"desafio-01-{snapshot}.zip"
@@ -55,11 +55,12 @@ def _():
         NarrativeSection,
         add_semantic_features,
         build_data_layer,
+        deterministic_sample,
         render_narrative_section,
     )
     from spotify_data.evaluation import best_model_summary, evaluate_regression, summarize_metrics
     return (EvidenceStatus, NarrativeSection, Path, add_semantic_features,
-            best_model_summary, build_data_layer, evaluate_regression, mo, pl,
+            best_model_summary, build_data_layer, deterministic_sample, evaluate_regression, mo, pl,
             render_narrative_section, root, summarize_metrics)
 
 
@@ -82,12 +83,12 @@ def _(Path, build_data_layer, mo, root):
 
 @app.cell
 def _(EvidenceStatus, NarrativeSection, add_semantic_features, best_model_summary, evaluate_regression,
-      model_frame, mo, pl, render_narrative_section, summarize_metrics):
+      deterministic_sample, model_frame, mo, pl, render_narrative_section, summarize_metrics):
     numeric = ["danceability", "energy", "loudness", "speechiness", "acousticness", "instrumentalness", "liveness", "valence", "tempo", "log_duration_ms", "key_sin", "key_cos", "explicit_binary", "mode_binary"]
     prepared = add_semantic_features(model_frame)
     # A deterministic cap keeps the exploratory notebook responsive. The
     # final run can remove the cap without changing the split/model protocol.
-    prepared = prepared.sample(n=min(40_000, prepared.height), seed=2026)
+    prepared = deterministic_sample(prepared, 40_000, seed=2026)
     results = evaluate_regression(prepared, numeric, repeats=5)
     summary = summarize_metrics(results)
     grouped = summary.filter(pl.col("split") == "artista não visto")

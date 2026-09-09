@@ -28,7 +28,7 @@ def _():
         with ZipFile(bundle_path) as bundle:
             bundle.extractall(repo_root)
     if not (repo_root / "spotify_data").exists():
-        snapshot = "12f6f86d857b55ddd37ab0b1a575dfb49b7f3f36"
+        snapshot = "405a0d58b513eaeb8daeac4d2b2b98a65e57a963"
         snapshot_root = repo_root / f"desafio-01-{snapshot}"
         if not snapshot_root.exists():
             archive_path = repo_root / f"desafio-01-{snapshot}.zip"
@@ -65,6 +65,7 @@ def _():
         build_data_layer,
         build_duckdb_layer,
         contract_capsule,
+        deterministic_sample,
         load_tracks_raw,
         missing_identifier_counts,
         render_narrative_section,
@@ -72,7 +73,7 @@ def _():
     return (EvidenceStatus, GroupShuffleSplit, HistGradientBoostingRegressor, KMeans, NarrativeSection, PCA,
             ParallelCoordinates, Path, ShuffleSplit, StandardScaler,
             build_data_layer, build_duckdb_layer, contract_capsule, calinski_harabasz_score, davies_bouldin_score,
-            go, load_tracks_raw, mean_absolute_error, mean_squared_error,
+            deterministic_sample, go, load_tracks_raw, mean_absolute_error, mean_squared_error,
             missing_identifier_counts, mo, np, pl, r2_score, render_narrative_section,
             repo_root, silhouette_score)
 
@@ -238,9 +239,9 @@ def _(features, mo):
 
 
 @app.cell
-def _(color_ctl, go, tracks, x_ctl, y_ctl):
-    rel = tracks.select(["track_name", "artists", x_ctl.value, y_ctl.value, color_ctl.value]).drop_nulls()
-    rel = rel.sample(n=min(4_000, rel.height), seed=2026)
+def _(color_ctl, deterministic_sample, go, tracks, x_ctl, y_ctl):
+    rel = tracks.select(["track_id", "track_name", "artists", x_ctl.value, y_ctl.value, color_ctl.value]).drop_nulls()
+    rel = deterministic_sample(rel, 4_000, seed=2026)
     fig_rel = go.Figure(go.Scattergl(x=rel[x_ctl.value].to_numpy(), y=rel[y_ctl.value].to_numpy(),
         mode="markers", marker={"size": 6, "opacity": .45, "color": rel[color_ctl.value].to_numpy(),
         "colorscale": "Viridis", "colorbar": {"title": color_ctl.value}},
@@ -273,10 +274,10 @@ def _(EvidenceStatus, NarrativeSection, color_ctl, fig_rel, mo, render_narrative
 
 
 @app.cell
-def _(ParallelCoordinates, mo, pl, tracks):
-    pc = tracks.select(["popularity", "danceability", "energy", "acousticness",
+def _(ParallelCoordinates, deterministic_sample, mo, pl, tracks):
+    pc = tracks.select(["track_id", "popularity", "danceability", "energy", "acousticness",
                         "instrumentalness", "valence", "genre_count"]).drop_nulls()
-    pc = pc.sample(n=min(700, pc.height), seed=2026).with_columns(
+    pc = deterministic_sample(pc, 700, seed=2026).drop("track_id").with_columns(
         pl.when(pl.col("popularity") >= pl.col("popularity").quantile(.75))
         .then(pl.lit("quartil superior")).otherwise(pl.lit("demais")).alias("grupo"))
     parallel = mo.ui.anywidget(ParallelCoordinates(pc, color_by="grupo",
@@ -287,9 +288,9 @@ def _(ParallelCoordinates, mo, pl, tracks):
 
 @app.cell
 def _(KMeans, PCA, StandardScaler, calinski_harabasz_score, davies_bouldin_score,
-      features, pl, silhouette_score, tracks):
+      deterministic_sample, features, pl, silhouette_score, tracks):
     psrc = tracks.select(["track_id", "popularity", *features]).drop_nulls()
-    psrc = psrc.sample(n=min(6_000, psrc.height), seed=2026)
+    psrc = deterministic_sample(psrc, 6_000, seed=2026)
     scaled = StandardScaler().fit_transform(psrc.select(features).to_numpy())
     pca = PCA(n_components=3, random_state=2026)
     pcs = pca.fit_transform(scaled)
@@ -301,7 +302,7 @@ def _(KMeans, PCA, StandardScaler, calinski_harabasz_score, davies_bouldin_score
                      "davies_bouldin": davies_bouldin_score(scaled, labels),
                      "calinski_harabasz": calinski_harabasz_score(scaled, labels)})
     cluster_metrics = pl.DataFrame(_cluster_rows).with_columns(pl.all().exclude("k").round(3))
-    best_k = int(cluster_metrics.sort("silhouette", descending=True)[0, "k"])
+    best_k = int(cluster_metrics.sort(["silhouette", "k"], descending=[True, False])[0, "k"])
     pframe = psrc.with_columns(pl.Series("PC1", pcs[:, 0]), pl.Series("PC2", pcs[:, 1]),
                               pl.Series("PC3", pcs[:, 2]), pl.Series("cluster", labels_by_k[best_k]))
     variance = pl.DataFrame({"PC": [1, 2, 3], "variância_explicada": pca.explained_variance_ratio_})
@@ -344,7 +345,7 @@ def _(EvidenceStatus, NarrativeSection, db, go, mo, render_narrative_section):
     leaves = db.execute("""
       WITH genre_counts AS (SELECT track_id, count(DISTINCT track_genre) k_genre FROM track_genres GROUP BY 1),
       artist_counts AS (SELECT track_id, count(DISTINCT artist) k_artist FROM track_artists GROUP BY 1),
-      top_genres AS (SELECT track_genre FROM track_genres GROUP BY 1 ORDER BY count(DISTINCT track_id) DESC LIMIT 5),
+      top_genres AS (SELECT track_genre FROM track_genres GROUP BY 1 ORDER BY count(DISTINCT track_id) DESC, track_genre LIMIT 5),
       ranked_artists AS (
         SELECT tg.track_genre, ta.artist,
           row_number() OVER (PARTITION BY tg.track_genre ORDER BY count(DISTINCT tg.track_id) DESC, ta.artist) artist_rank
@@ -395,7 +396,7 @@ def _(EvidenceStatus, NarrativeSection, db, go, mo, render_narrative_section):
 @app.cell
 def _(db, go, np):
     overlap = db.execute("""WITH top AS (SELECT track_genre FROM track_genres GROUP BY 1
-      ORDER BY count(DISTINCT track_id) DESC LIMIT 15)
+      ORDER BY count(DISTINCT track_id) DESC, track_genre LIMIT 15)
       SELECT a.track_genre s,b.track_genre t,count(DISTINCT a.track_id) w
       FROM track_genres a JOIN track_genres b USING(track_id)
       JOIN top x ON x.track_genre=a.track_genre JOIN top y ON y.track_genre=b.track_genre GROUP BY 1,2""").pl()
@@ -404,7 +405,7 @@ def _(db, go, np):
     heatmap = go.Figure(go.Heatmap(z=matrix, x=names, y=names, colorscale="Blues"))
     heatmap.update_layout(title="Sobreposição dos 15 maiores gêneros", height=560)
     edges = db.execute("""SELECT ta.artist,tg.track_genre,count(DISTINCT tg.track_id) w
-      FROM track_artists ta JOIN track_genres tg USING(track_id) GROUP BY 1,2 ORDER BY w DESC LIMIT 30""").pl()
+      FROM track_artists ta JOIN track_genres tg USING(track_id) GROUP BY 1,2 ORDER BY w DESC, ta.artist, tg.track_genre LIMIT 30""").pl()
     an = ["artista: "+x for x in sorted(set(edges["artist"].to_list()))]
     gn = ["gênero: "+x for x in sorted(set(edges["track_genre"].to_list()))]
     nodes=an+gn; ix={x:i for i,x in enumerate(nodes)}
@@ -438,11 +439,11 @@ def _(EvidenceStatus, NarrativeSection, heatmap, mo, render_narrative_section, s
 
 
 @app.cell
-def _(GroupShuffleSplit, HistGradientBoostingRegressor, ShuffleSplit, db, features,
+def _(GroupShuffleSplit, HistGradientBoostingRegressor, ShuffleSplit, db, deterministic_sample, features,
       mean_absolute_error, mean_squared_error, np, pl, r2_score, tracks):
     primary = db.execute("SELECT track_id,min_by(artist,artist_position) primary_artist FROM track_artists GROUP BY 1").pl()
     mf = tracks.select(["track_id","popularity","genre_count",*features]).join(primary,on="track_id").drop_nulls()
-    mf = mf.sample(n=min(45_000,mf.height),seed=2026)
+    mf = deterministic_sample(mf, 45_000, seed=2026)
     def evaluate(train_i,test_i,split,repeat):
         train,test=mf[train_i],mf[test_i]
         stats=train.group_by("primary_artist").agg(pl.len().alias("artist_catalogue_size"))
@@ -461,7 +462,7 @@ def _(GroupShuffleSplit, HistGradientBoostingRegressor, ShuffleSplit, db, featur
     results=pl.DataFrame(_model_rows)
     summary=results.group_by(["split","modelo"]).agg(pl.mean("MAE").alias("MAE_média"),
       pl.quantile("MAE",.1).alias("MAE_p10"),pl.quantile("MAE",.9).alias("MAE_p90"),
-      pl.mean("RMSE").alias("RMSE_média"),pl.mean("R2").alias("R2_médio")).sort(["split","MAE_média"]).with_columns(pl.all().exclude(["split","modelo"]).round(3))
+      pl.mean("RMSE").alias("RMSE_média"),pl.mean("R2").alias("R2_médio")).sort(["split","MAE_média","modelo"]).with_columns(pl.all().exclude(["split","modelo"]).round(3))
     return results, summary
 
 

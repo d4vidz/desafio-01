@@ -100,3 +100,23 @@ def test_manifest_artifact_provenance_is_stable_across_line_endings(monkeypatch,
     entry = render_notebooks.build_manifest(html_directory)["notebooks"][0]
     assert entry["html_sha256"] == hashlib.sha256(canonical).hexdigest()
     assert entry["html_bytes"] == len(canonical)
+
+
+def test_source_dirty_check_excludes_generated_notebook_artifacts(monkeypatch):
+    calls = []
+
+    def fake_git_value(*args):
+        calls.append(args)
+        return None
+
+    monkeypatch.setattr(render_notebooks, "git_value", fake_git_value)
+    assert render_notebooks.source_working_tree_dirty() is False
+    assert calls == [
+        (
+            "status",
+            "--porcelain",
+            "--",
+            ".",
+            ":(exclude)artifacts/notebooks/**",
+        )
+    ]

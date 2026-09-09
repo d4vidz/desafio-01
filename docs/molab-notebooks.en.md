@@ -22,7 +22,8 @@ The initial cloud smoke test ran on the branch content at
 `35f72904a6e76ee61a5c9b9c28b072e25b59001e`; later commits `6e6887a` and
 `ca319a6` changed documentation and the translation manifest only, without
 changing the notebooks. They explicitly download the shared context pinned to
-`12f6f86d857b55ddd37ab0b1a575dfb49b7f3f36`; that pin is the bootstrap boundary
+`405a0d58b513eaeb8daeac4d2b2b98a65e57a963`; that pin includes the
+deterministic sampling helper validated in #77 and is the bootstrap boundary
 for the modules/CSV, while notebook code and artifacts are read from the branch.
 
 | Notebook | Contextual Molab preview | Shared runtime | Verification on 2026-09-03 (BRT) |
