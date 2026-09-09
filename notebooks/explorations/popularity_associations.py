@@ -23,11 +23,9 @@ def _():
     if not (root / "spotify_data").exists() and bundle_path.exists():
         with ZipFile(bundle_path) as bundle: bundle.extractall(root)
     if not (root / "spotify_data").exists():
-        # Molab follow-up: after this branch is pushed, replace this known
-        # remote snapshot with the resulting remote commit SHA. Do not use a
-        # local-only SHA here; the current value intentionally remains the
-        # last snapshot available on Molab for this no-push change.
-        snapshot = "405a0d58b513eaeb8daeac4d2b2b98a65e57a963"
+        # Pin the dependency bundle to a published commit containing the
+        # helpers used by this notebook; Molab imports remain reproducible.
+        snapshot = "cf7368ac8363aebe958eef56afb1de6f95abfc78"
         snapshot_root = root / f"desafio-01-{snapshot}"
         if not snapshot_root.exists():
             archive_path = root / f"desafio-01-{snapshot}.zip"
