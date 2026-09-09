@@ -6,7 +6,7 @@
     "contract_version": "0.1"
   },
   "repository": {
-    "commit_at_render": "f0ddadee626427c8c67d3ede6ac3e32315366027",
+    "commit_at_render": "66380fcc0dda898983313717b4b86a6241c6c252",
     "ref_at_render": "analysis/33-popularity-associations",
     "working_tree_dirty_at_render": false,
     "environment_lock_sha256": "7da63cbb28af87881fc375c1e1c8ea702f547d7d4140697f034b5d9707e55271"
@@ -37,10 +37,10 @@
     },
     {
       "notebook": "notebooks/explorations/popularity_associations.py",
-      "notebook_sha256": "0549290050980af9108ef93620fe49e3638c7866247d64690670efeed2090a69",
+      "notebook_sha256": "635f540371b016269f3691ba05a7625358ae2945a866faf1d3d719acd1fe6292",
       "html": "artifacts/notebooks/html/popularity_associations.html",
-      "html_sha256": "b1a02b9e14a15ea00ff3e5f0a6c4ef75877598e1e83617c7393ca437d2e2a8b9",
-      "html_bytes": 1151322,
+      "html_sha256": "238ebfe63a276c0fa9cd73981d194b063354e2ce5c9fcd365219361e422302da",
+      "html_bytes": 1157418,
       "declared_evidence_statuses": [
         "protótipo"
       ],
@@ -49,7 +49,9 @@
       "configuration": {
         "generated_with": "0.24.0",
         "app_width": "full",
-        "declared_integer_seeds": [],
+        "declared_integer_seeds": [
+          2026
+        ],
         "output_limit_bytes_per_cell": 5000000
       }
     },
