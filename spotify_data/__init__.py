@@ -50,6 +50,15 @@ from .statistics import (
     synthetic_imputation_metrics,
 )
 from .clustering import clustering_stability
+from .evaluation import (
+    EvaluationResult,
+    EvaluationSpec,
+    best_model_summary,
+    evaluate_regression,
+    run_evaluation,
+    summarize_evaluation,
+    summarize_metrics,
+)
 from .notebook_ui import EvidenceStatus, NarrativeSection, render_narrative_section
 
 __all__ = [
@@ -95,6 +104,13 @@ __all__ = [
     "fit_clustered_ols",
     "joint_wald_test",
     "clustering_stability",
+    "EvaluationResult",
+    "EvaluationSpec",
+    "best_model_summary",
+    "evaluate_regression",
+    "run_evaluation",
+    "summarize_evaluation",
+    "summarize_metrics",
     "EvidenceStatus",
     "NarrativeSection",
     "render_narrative_section",
