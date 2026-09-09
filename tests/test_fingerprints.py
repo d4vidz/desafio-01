@@ -1,6 +1,7 @@
 import numpy as np
 import polars as pl
 import pytest
+from sklearn.preprocessing import StandardScaler
 
 from spotify_data.fingerprints import diagnose_audio_neighbours
 
@@ -112,3 +113,8 @@ def test_nearest_search_handles_features_with_very_different_scales():
     )
     assert result.summary[0, "before_eligible_queries"] == 3
     assert result.audit["before_distance"].is_not_null().all()
+    ordered = frame.sort(["track_id", "artists", "small", "large"])
+    scaled = StandardScaler().fit_transform(ordered.select("small", "large").to_numpy())
+    expected = float(np.linalg.norm(scaled[0] - scaled[1]))
+    observed = result.audit.filter(pl.col("query_id") == "a")[0, "before_distance"]
+    assert observed == pytest.approx(expected)

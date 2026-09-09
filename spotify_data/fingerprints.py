@@ -77,8 +77,10 @@ def _validate_inputs(
         raise ValueError("max_candidates must be an integer between 2 and 100000")
     if not np.isfinite(duplicate_tolerance) or duplicate_tolerance < 0:
         raise ValueError("duplicate_tolerance must be finite and non-negative")
-    values = frame.select(feature_columns).to_numpy()
-    if not np.isfinite(values.astype(np.float64)).all():
+    finite = frame.select(
+        [pl.col(column).is_finite().all().alias(column) for column in feature_columns]
+    ).row(0)
+    if not all(finite):
         raise ValueError("audio features must contain only finite values")
 
 
@@ -133,11 +135,19 @@ def diagnose_audio_neighbours(
             ]
         )
     )
-    ordered = _stable_order(frame, order_columns, id_column)
-    if ordered.height > max_candidates:
-        ordered = ordered.sample(
-            n=max_candidates, seed=seed, shuffle=True
+    selected = frame
+    if frame.height > max_candidates:
+        # Hash selection scans the source once but avoids sorting/materializing
+        # its full numeric matrix. Sorting and distance work apply only to the
+        # bounded candidate population.
+        selected = (
+            frame.with_columns(
+                pl.col(id_column).hash(seed=seed).alias("__candidate_hash")
+            )
+            .top_k(max_candidates, by=["__candidate_hash", id_column])
+            .drop("__candidate_hash")
         )
+    ordered = _stable_order(selected, order_columns, id_column)
     query_count = min(max_queries, ordered.height)
     queries = ordered.head(query_count)
     raw_values = ordered.select(feature_columns).to_numpy().astype(np.float64)
