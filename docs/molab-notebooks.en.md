@@ -22,9 +22,16 @@ The initial cloud smoke test ran on the branch content at
 `35f72904a6e76ee61a5c9b9c28b072e25b59001e`; later commits `6e6887a` and
 `ca319a6` changed documentation and the translation manifest only, without
 changing the notebooks. They explicitly download the shared context pinned to
-`405a0d58b513eaeb8daeac4d2b2b98a65e57a963`; that pin includes the
+`cf7368ac8363aebe958eef56afb1de6f95abfc78`; that pin includes the
+corrected statistical helpers from MR !4 and the
 deterministic sampling helper validated in #77 and is the bootstrap boundary
 for the modules/CSV, while notebook code and artifacts are read from the branch.
+
+On 2026-09-09, the associations notebook at head `ab8276d` was executed
+in a clean Molab environment: 17 headings and 9 tables rendered, including
+confirmation, heterogeneity/pooling, and synthetic imputation, with zero
+visible errors. The fixed review URL is
+https://molab.marimo.io/github/d4vidz/desafio-01/blob/ab8276d5194461e7c67fd00c357e03c8ed753bdc/notebooks/explorations/popularity_associations.py/server.
 
 | Notebook | Contextual Molab preview | Shared runtime | Verification on 2026-09-03 (BRT) |
 | --- | --- | --- | --- |
