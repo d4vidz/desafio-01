@@ -14,6 +14,7 @@ import numpy as np
 import polars as pl
 from sklearn.decomposition import PCA, TruncatedSVD
 from sklearn.preprocessing import RobustScaler
+from scipy.stats import spearmanr
 
 CONTINUOUS_AUDIO_FEATURES = (
     "danceability", "energy", "loudness", "speechiness", "acousticness",
@@ -219,3 +220,96 @@ def robust_pca_profiles(profiles: pl.DataFrame, *, n_components: int = 2) -> tup
     return profiles.select("track_genre").with_columns(
         *[pl.Series(f"PC{i+1}", coordinates[:, i]) for i in range(coordinates.shape[1])]
     ), pca
+
+
+def genre_overlap_pairs(track_genres: pl.DataFrame) -> pl.DataFrame:
+    """Return deterministic pairwise genre overlap with Jaccard normalization."""
+
+    edges = track_genres.select("track_id", "track_genre").unique()
+    support = edges.group_by("track_genre").agg(
+        pl.col("track_id").n_unique().alias("genre_tracks")
+    )
+    pairs = (
+        edges.rename({"track_genre": "genre_a"})
+        .join(
+            edges.rename({"track_genre": "genre_b"}),
+            on="track_id",
+            how="inner",
+        )
+        .filter(pl.col("genre_a") < pl.col("genre_b"))
+        .group_by("genre_a", "genre_b")
+        .agg(pl.col("track_id").n_unique().alias("shared_tracks"))
+        .join(
+            support.rename(
+                {"track_genre": "genre_a", "genre_tracks": "tracks_a"}
+            ),
+            on="genre_a",
+        )
+        .join(
+            support.rename(
+                {"track_genre": "genre_b", "genre_tracks": "tracks_b"}
+            ),
+            on="genre_b",
+        )
+        .with_columns(
+            (
+                pl.col("shared_tracks")
+                / (pl.col("tracks_a") + pl.col("tracks_b") - pl.col("shared_tracks"))
+            ).alias("jaccard")
+        )
+        .sort(["jaccard", "shared_tracks", "genre_a", "genre_b"], descending=[True, True, False, False])
+    )
+    return pairs
+
+
+def compare_genre_similarities(
+    overlap_pairs: pl.DataFrame,
+    profiles: pl.DataFrame,
+    *,
+    permutations: int = 999,
+    seed: int = 2026,
+) -> dict[str, float | int]:
+    """Compare co-occurrence and audio-profile similarity with a label permutation."""
+
+    if permutations < 1:
+        raise ValueError("permutations must be at least 1")
+    value_columns = [column for column in profiles.columns if column != "track_genre"]
+    if not value_columns:
+        raise ValueError("profiles must include numeric profile columns")
+    genres = profiles["track_genre"].to_list()
+    scaled = RobustScaler().fit_transform(profiles.select(value_columns).to_numpy())
+    norms = np.linalg.norm(scaled, axis=1)
+    normalized = np.divide(
+        scaled,
+        norms[:, None],
+        out=np.zeros_like(scaled, dtype=float),
+        where=norms[:, None] > 0,
+    )
+    index = {genre: position for position, genre in enumerate(genres)}
+    usable = overlap_pairs.filter(
+        pl.col("genre_a").is_in(genres) & pl.col("genre_b").is_in(genres)
+    )
+    if usable.height < 3:
+        raise ValueError("at least three shared genre pairs are required")
+    pair_indices = np.array(
+        [(index[a], index[b]) for a, b in usable.select("genre_a", "genre_b").iter_rows()],
+        dtype=int,
+    )
+    overlap = usable["jaccard"].to_numpy()
+
+    def correlation(vectors: np.ndarray) -> float:
+        audio = np.sum(vectors[pair_indices[:, 0]] * vectors[pair_indices[:, 1]], axis=1)
+        result = float(spearmanr(overlap, audio).statistic)
+        return 0.0 if not np.isfinite(result) else result
+
+    observed = correlation(normalized)
+    rng = np.random.default_rng(seed)
+    null = np.array([correlation(normalized[rng.permutation(len(genres))]) for _ in range(permutations)])
+    p_value = float((1 + np.count_nonzero(np.abs(null) >= abs(observed))) / (permutations + 1))
+    return {
+        "pairs": usable.height,
+        "spearman": observed,
+        "permutation_p_value": p_value,
+        "permutations": permutations,
+        "seed": seed,
+    }

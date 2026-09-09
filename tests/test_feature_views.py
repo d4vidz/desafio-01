@@ -11,6 +11,8 @@ from spotify_data import (
     deterministic_sample,
     eligible_group_summary,
     fit_genre_ppmi,
+    genre_overlap_pairs,
+    compare_genre_similarities,
     genre_audio_profiles,
     genre_membership_matrix,
     holm_adjust,
@@ -169,6 +171,42 @@ def test_audio_profiles_are_bounded_and_support_fractional_sensitivity():
     sensitivity = genre_audio_profiles(tracks, edges, fractional_weights=True)
     assert primary.height == sensitivity.height == 2
     assert "danceability_q50" in primary.columns
+
+
+def test_genre_overlap_is_distinct_normalized_and_deterministic():
+    edges = pl.DataFrame(
+        {
+            "track_id": ["a", "a", "b", "b", "c", "c", "d"],
+            "track_genre": ["pop", "rock", "pop", "rock", "pop", "jazz", "jazz"],
+        }
+    )
+    pairs = genre_overlap_pairs(edges)
+    top = pairs.row(0, named=True)
+    assert (top["genre_a"], top["genre_b"]) == ("pop", "rock")
+    assert top["shared_tracks"] == 2
+    assert top["jaccard"] == pytest.approx(2 / 3)
+
+
+def test_genre_similarity_comparison_is_seeded_and_bounded():
+    pairs = pl.DataFrame(
+        {
+            "genre_a": ["a", "a", "a", "b", "b", "c"],
+            "genre_b": ["b", "c", "d", "c", "d", "d"],
+            "jaccard": [0.9, 0.5, 0.1, 0.4, 0.2, 0.3],
+        }
+    )
+    profiles = pl.DataFrame(
+        {
+            "track_genre": ["a", "b", "c", "d"],
+            "energy_q50": [0.0, 0.1, 0.7, 1.0],
+            "valence_q50": [0.0, 0.2, 0.8, 0.9],
+        }
+    )
+    first = compare_genre_similarities(pairs, profiles, permutations=25, seed=7)
+    second = compare_genre_similarities(pairs, profiles, permutations=25, seed=7)
+    assert first == second
+    assert first["pairs"] == 6
+    assert 0 <= first["permutation_p_value"] <= 1
 
 
 def test_multiplicity_helpers_preserve_shape_and_pool_heterogeneity():
