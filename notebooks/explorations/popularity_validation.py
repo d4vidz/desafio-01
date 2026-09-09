@@ -30,7 +30,7 @@ def _():
         with ZipFile(bundle_path) as bundle:
             bundle.extractall(root)
     if not (root / "spotify_data").exists():
-        snapshot = "cf7368ac8363aebe958eef56afb1de6f95abfc78"
+        snapshot = "444f6d34ba80174e9f6c702794f0f9646c5972db"
         snapshot_root = root / f"desafio-01-{snapshot}"
         if not snapshot_root.exists():
             archive_path = root / f"desafio-01-{snapshot}.zip"
@@ -58,10 +58,15 @@ def _():
         deterministic_sample,
         render_narrative_section,
     )
-    from spotify_data.evaluation import best_model_summary, evaluate_regression, summarize_metrics
+    from spotify_data.evaluation import (
+        EvaluationSpec,
+        best_model_summary,
+        run_evaluation,
+    )
     return (EvidenceStatus, NarrativeSection, Path, add_semantic_features,
-            best_model_summary, build_data_layer, deterministic_sample, evaluate_regression, mo, pl,
-            render_narrative_section, root, summarize_metrics)
+            EvaluationSpec, best_model_summary, build_data_layer,
+            deterministic_sample, mo, pl, render_narrative_section, root,
+            run_evaluation)
 
 
 @app.cell
@@ -82,15 +87,19 @@ def _(Path, build_data_layer, mo, root):
 
 
 @app.cell
-def _(EvidenceStatus, NarrativeSection, add_semantic_features, best_model_summary, evaluate_regression,
-      deterministic_sample, model_frame, mo, pl, render_narrative_section, summarize_metrics):
+def _(EvidenceStatus, EvaluationSpec, NarrativeSection, add_semantic_features,
+      best_model_summary, deterministic_sample, model_frame, mo, pl,
+      render_narrative_section, run_evaluation):
     numeric = ["danceability", "energy", "loudness", "speechiness", "acousticness", "instrumentalness", "liveness", "valence", "tempo", "log_duration_ms", "key_sin", "key_cos", "explicit_binary", "mode_binary"]
     prepared = add_semantic_features(model_frame)
     # A deterministic cap keeps the exploratory notebook responsive. The
     # final run can remove the cap without changing the split/model protocol.
     prepared = deterministic_sample(prepared, 40_000, seed=2026)
-    results = evaluate_regression(prepared, numeric, repeats=5)
-    summary = summarize_metrics(results)
+    evaluation = run_evaluation(
+        prepared,
+        EvaluationSpec(tuple(numeric), repeats=5, seed=2026),
+    )
+    summary = evaluation.summary
     grouped = summary.filter(pl.col("split") == "artista não visto")
     best = best_model_summary(summary, "artista não visto")
     narrative = NarrativeSection(
@@ -104,7 +113,7 @@ def _(EvidenceStatus, NarrativeSection, add_semantic_features, best_model_summar
         result=f"O menor MAE médio observado no split por artista foi {best.mae_mean:.2f}, para o modelo {best.model}.",
         interpretation="Este é um diagnóstico de generalização contemporânea no snapshot, não uma previsão temporal de sucesso futuro.",
         use="Orientar a especificação dos experimentos preditivos e a escolha de ablações que serão validadas em uma entrega posterior.",
-        limitation="Ainda faltam bootstrap pareado agrupado, estratos de colaboração e auditoria de fingerprints; portanto este resultado não é evidência preditiva final.",
+        limitation="O intervalo pareado já é calculado por bootstrap de artistas, mas ainda faltam estratos de colaboração e auditoria de fingerprints; portanto este resultado não é evidência preditiva final.",
         status=EvidenceStatus.PROTOTYPE,
         terms={
             "MAE": "Erro absoluto médio em pontos de popularity; menor é melhor.",
@@ -115,9 +124,12 @@ def _(EvidenceStatus, NarrativeSection, add_semantic_features, best_model_summar
         mo.md("# Validação preditiva: popularity observada"),
         render_narrative_section(mo, narrative),
         mo.ui.table(summary),
-        mo.md("MAE é a métrica primária; RMSE e R² são secundárias. Um ganho só será promovido após o protocolo completo confirmar redução mínima de 0,5 ponto e intervalo pareado por bootstrap agrupado que exclua zero."),
+        mo.md("## Incerteza pareada e auditoria das partições"),
+        mo.ui.table(evaluation.paired_intervals),
+        mo.ui.table(evaluation.partitions),
+        mo.md("MAE é a métrica primária; RMSE e R² são secundárias. `delta_mae` compara cada modelo à baseline de mediana: valores negativos favorecem o modelo. `promotion_gate` só é verdadeiro quando o ganho médio é de pelo menos 0,5 ponto e o intervalo de 95% exclui zero. A tabela de partições deve mostrar sobreposição de artistas igual a zero no split principal."),
     ])
-    return grouped, prepared, results, summary
+    return evaluation, grouped, prepared, summary
 
 
 @app.cell
