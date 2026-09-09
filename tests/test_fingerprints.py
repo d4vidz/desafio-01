@@ -93,3 +93,22 @@ def test_candidate_population_is_seeded_bounded_and_canonical():
         diagnose_audio_neighbours(
             pl.concat([frame, frame.head(1)]), feature_columns=("x",), genre_column=None
         )
+
+
+def test_nearest_search_handles_features_with_very_different_scales():
+    frame = pl.DataFrame(
+        {
+            "track_id": ["a", "b", "c"],
+            "artists": ["A", "B", "C"],
+            "small": [0.1, 0.2, 0.3],
+            "large": [100_000.0, 200_000.0, 300_000.0],
+        }
+    )
+    result = diagnose_audio_neighbours(
+        frame,
+        feature_columns=("small", "large"),
+        genre_column=None,
+        max_queries=3,
+    )
+    assert result.summary[0, "before_eligible_queries"] == 3
+    assert result.audit["before_distance"].is_not_null().all()

@@ -11,7 +11,6 @@ from dataclasses import dataclass
 
 import numpy as np
 import polars as pl
-from sklearn.neighbors import NearestNeighbors
 from sklearn.preprocessing import StandardScaler
 
 
@@ -162,11 +161,11 @@ def diagnose_audio_neighbours(
         def nearest(positions: np.ndarray) -> tuple[int | None, float | None]:
             if len(positions) == 0:
                 return None, None
-            model = NearestNeighbors(n_neighbors=1, metric="euclidean", algorithm="brute")
-            model.fit(values[positions])
-            distance, local = model.kneighbors(vector.reshape(1, -1), return_distance=True)
-            best_distance = float(distance[0, 0])
-            tied = positions[np.isclose(np.linalg.norm(values[positions] - vector, axis=1), best_distance, rtol=1e-12, atol=1e-12)]
+            distances = np.linalg.norm(values[positions] - vector, axis=1)
+            best_distance = float(distances.min())
+            tied = positions[
+                np.isclose(distances, best_distance, rtol=1e-10, atol=1e-12)
+            ]
             best_position = int(tied.min())
             return best_position, best_distance
 
