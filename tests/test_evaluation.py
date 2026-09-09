@@ -89,6 +89,15 @@ def test_track_id_is_not_a_predictor_and_is_rejected_as_a_feature():
         EvaluationSpec(("energy", "track_id"))
 
 
+def test_evaluation_rejects_duplicate_track_grain():
+    frame = _evaluation_frame()
+    duplicated = pl.concat([frame, frame.head(1)])
+    with pytest.raises(ValueError, match="one row per track_id"):
+        run_evaluation(
+            duplicated, EvaluationSpec(("energy", "danceability"), repeats=1)
+        )
+
+
 def test_unseen_artist_split_has_disjoint_groups():
     frame = _evaluation_frame()
     result = run_evaluation(

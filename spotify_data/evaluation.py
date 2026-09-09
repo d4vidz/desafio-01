@@ -96,7 +96,7 @@ SPLITS = (
 )
 
 
-def make_models() -> dict[str, object | None]:
+def make_models(*, seed: int = 2026) -> dict[str, object | None]:
     """Create fresh baseline estimators for one fold.
 
     The Ridge scaler is inside the pipeline so it is fitted on the training
@@ -112,7 +112,7 @@ def make_models() -> dict[str, object | None]:
             max_leaf_nodes=31,
             learning_rate=0.05,
             l2_regularization=1.0,
-            random_state=2026,
+            random_state=seed,
         ),
     }
 
@@ -134,13 +134,15 @@ def _fit_predict(
     y: np.ndarray,
     train_index: np.ndarray,
     test_index: np.ndarray,
+    *,
+    seed: int,
 ) -> dict[str, np.ndarray]:
     """Fit every model on one training fold and predict its test fold."""
 
     predictions: dict[str, np.ndarray] = {
         "dummy mediana": np.full(len(test_index), np.median(y[train_index]))
     }
-    for name, model in make_models().items():
+    for name, model in make_models(seed=seed).items():
         if model is None:
             continue
         # The fit call is intentionally inside the fold loop. This keeps
@@ -182,6 +184,8 @@ def run_evaluation(frame: pl.DataFrame, spec: EvaluationSpec) -> EvaluationResul
     )
     if data.is_empty():
         raise ValueError("The strict unseen-single-artist population is empty")
+    if data["track_id"].n_unique() != data.height:
+        raise ValueError("Evaluation requires exactly one row per track_id")
 
     x = data.select(spec.feature_columns).to_numpy()
     y = data[spec.target_column].to_numpy()
@@ -205,7 +209,9 @@ def run_evaluation(frame: pl.DataFrame, spec: EvaluationSpec) -> EvaluationResul
             iterator = splitter.split(x, y)
 
         for repetition, (train_index, test_index) in enumerate(iterator, start=1):
-            predictions = _fit_predict(x, y, train_index, test_index)
+            predictions = _fit_predict(
+                x, y, train_index, test_index, seed=spec.seed + repetition
+            )
             for model_name, predicted in predictions.items():
                 rows.append(
                     {
