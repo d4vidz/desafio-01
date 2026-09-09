@@ -74,6 +74,38 @@ def test_baseline_api_returns_only_bounded_metrics_for_all_models_and_splits():
     assert "track_id" not in result.metrics.columns
     assert "prediction" not in result.metrics.columns
     assert result.summary.height == 6
+    expected_prediction_rows = int(result.partitions["test_rows"].sum()) * 3
+    assert result.predictions.height == expected_prediction_rows
+    assert result.partitions.height == 2 * 2
+    assert result.paired_intervals.height == 2 * 2
+    assert (
+        result.partitions.filter(pl.col("split") == "artista não visto")[
+            "artist_overlap"
+        ]
+        == 0
+    ).all()
+
+
+def test_paired_intervals_and_artifact_are_deterministic_and_bounded(tmp_path):
+    spec = EvaluationSpec(
+        ("energy", "danceability"),
+        repeats=2,
+        seed=17,
+        bootstrap_replicates=40,
+        bootstrap_seed=99,
+    )
+
+    first = run_evaluation(_evaluation_frame(), spec)
+    second = run_evaluation(_evaluation_frame(), spec)
+
+    assert_frame_equal(first.paired_intervals, second.paired_intervals)
+    artifact = first.artifact()
+    assert artifact["full_predictions"] == "session-only; not committed"
+    assert "predictions" not in artifact
+    assert len(artifact["bounded_examples"]) <= 2 * 3 * 5
+    destination = tmp_path / "evaluation.json"
+    first.write_json(destination)
+    assert destination.read_text(encoding="utf-8").endswith("\n")
 
 
 def test_track_id_is_not_a_predictor_and_is_rejected_as_a_feature():

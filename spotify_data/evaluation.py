@@ -1,14 +1,18 @@
 """Deterministic, group-aware evaluation of observed popularity.
 
 The public baseline API keeps the evaluation protocol separate from the
-legacy tabular helpers. ``run_evaluation`` returns fold metrics only: it does
-not retain predictions or identifiers, which keeps the result bounded and
-makes accidental target/identifier leakage easier to detect.
+legacy tabular helpers. ``run_evaluation`` retains session predictions for
+paired uncertainty estimates, while ``EvaluationResult.artifact`` emits only
+bounded summaries and examples suitable for version control.
 """
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
+from hashlib import sha256
+import json
+from pathlib import Path
+from typing import Any
 
 import numpy as np
 import polars as pl
@@ -44,6 +48,10 @@ class EvaluationSpec:
     repeats: int = 5
     test_size: float = 0.2
     seed: int = 2026
+    bootstrap_replicates: int = 400
+    bootstrap_seed: int = 2027
+    promotion_mae_gain: float = 0.5
+    protocol_version: str = "0.2"
 
     def __post_init__(self) -> None:
         features = tuple(self.feature_columns)
@@ -60,6 +68,10 @@ class EvaluationSpec:
             raise ValueError("repeats must be at least 1")
         if not 0 < self.test_size < 1:
             raise ValueError("test_size must be between 0 and 1")
+        if self.bootstrap_replicates < 1:
+            raise ValueError("bootstrap_replicates must be at least 1")
+        if self.promotion_mae_gain < 0:
+            raise ValueError("promotion_mae_gain cannot be negative")
 
 
 @dataclass(frozen=True)
@@ -73,21 +85,65 @@ class ModelSummary:
 
 @dataclass(frozen=True)
 class EvaluationResult:
-    """Bounded output from :func:`run_evaluation`.
-
-    Only one row per model/split/repetition is retained. In particular,
-    predictions and ``track_id`` values are intentionally not part of the
-    result.
-    """
+    """Auditable session result; notebook renderers must display bounded views."""
 
     spec: EvaluationSpec
     metrics: pl.DataFrame
+    predictions: pl.DataFrame
+    partitions: pl.DataFrame
+    paired_intervals: pl.DataFrame
+    provenance: dict[str, Any]
 
     @property
     def summary(self) -> pl.DataFrame:
         """Return aggregate metrics for this run."""
 
         return summarize_evaluation(self.metrics)
+
+    def artifact(self) -> dict[str, Any]:
+        """Return a bounded JSON-safe handoff without full predictions."""
+
+        error_bins = (
+            self.predictions.with_columns(
+                pl.col("absolute_error")
+                .cut([5.0, 10.0, 20.0], labels=["0–5", "5–10", "10–20", "20+"])
+                .alias("error_bin")
+            )
+            .group_by(["split", "modelo", "error_bin"])
+            .len()
+            .sort(["split", "modelo", "error_bin"])
+        )
+        examples = (
+            self.predictions.sort(
+                ["absolute_error", "track_id"],
+                descending=[True, False],
+            )
+            .group_by(["split", "modelo"], maintain_order=True)
+            .head(5)
+        )
+        return {
+            "version": 1,
+            "spec": asdict(self.spec),
+            "provenance": self.provenance,
+            "metrics": self.summary.to_dicts(),
+            "paired_intervals": self.paired_intervals.to_dicts(),
+            "partitions": self.partitions.to_dicts(),
+            "error_bins": error_bins.to_dicts(),
+            "bounded_examples": examples.to_dicts(),
+            "full_predictions": "session-only; not committed",
+        }
+
+    def write_json(self, path: str | Path) -> None:
+        """Write the bounded handoff artifact with canonical formatting."""
+
+        destination = Path(path)
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        destination.write_text(
+            json.dumps(self.artifact(), ensure_ascii=False, indent=2, sort_keys=True)
+            + "\n",
+            encoding="utf-8",
+            newline="\n",
+        )
 
 
 SPLITS = (
@@ -152,6 +208,80 @@ def _fit_predict(
     return predictions
 
 
+def _stable_hash(values: np.ndarray) -> str:
+    """Hash a set-like sequence independently of input order."""
+
+    payload = "\n".join(sorted(str(value) for value in values)).encode("utf-8")
+    return sha256(payload).hexdigest()
+
+
+def _paired_artist_intervals(
+    predictions: pl.DataFrame,
+    spec: EvaluationSpec,
+    *,
+    baseline: str = "dummy mediana",
+) -> pl.DataFrame:
+    """Bootstrap paired MAE deltas after aggregating rows within artist."""
+
+    rows: list[dict[str, float | int | str | bool]] = []
+    for split in predictions["split"].unique().sort().to_list():
+        split_frame = predictions.filter(pl.col("split") == split)
+        baseline_errors = split_frame.filter(pl.col("modelo") == baseline).select(
+            ["repeticao", "track_id", "primary_artist", "absolute_error"]
+        ).rename({"absolute_error": "baseline_error"})
+        for model in (
+            split_frame.filter(pl.col("modelo") != baseline)["modelo"]
+            .unique()
+            .sort()
+            .to_list()
+        ):
+            paired = (
+                split_frame.filter(pl.col("modelo") == model)
+                .join(
+                    baseline_errors,
+                    on=["repeticao", "track_id", "primary_artist"],
+                    how="inner",
+                    validate="1:1",
+                )
+                .with_columns(
+                    (pl.col("absolute_error") - pl.col("baseline_error")).alias(
+                        "delta_mae"
+                    )
+                )
+                .group_by("primary_artist")
+                .agg(pl.col("delta_mae").mean())
+                .sort("primary_artist")
+            )
+            artist_deltas = paired["delta_mae"].to_numpy()
+            rng = np.random.default_rng(
+                spec.bootstrap_seed
+                + sum(ord(character) for character in f"{split}:{model}")
+            )
+            draw_indices = rng.integers(
+                0,
+                len(artist_deltas),
+                size=(spec.bootstrap_replicates, len(artist_deltas)),
+            )
+            bootstrap_means = artist_deltas[draw_indices].mean(axis=1)
+            mean_delta = float(artist_deltas.mean())
+            ci_low, ci_high = np.quantile(bootstrap_means, [0.025, 0.975])
+            rows.append(
+                {
+                    "split": split,
+                    "modelo": model,
+                    "baseline": baseline,
+                    "artists": len(artist_deltas),
+                    "delta_mae": mean_delta,
+                    "ci95_low": float(ci_low),
+                    "ci95_high": float(ci_high),
+                    "promotion_gate": bool(
+                        mean_delta <= -spec.promotion_mae_gain and ci_high < 0
+                    ),
+                }
+            )
+    return pl.DataFrame(rows)
+
+
 def run_evaluation(frame: pl.DataFrame, spec: EvaluationSpec) -> EvaluationResult:
     """Evaluate the three baselines on grouped and diagnostic random splits.
 
@@ -191,6 +321,8 @@ def run_evaluation(frame: pl.DataFrame, spec: EvaluationSpec) -> EvaluationResul
     y = data[spec.target_column].to_numpy()
     groups = data[spec.group_column].to_numpy()
     rows: list[dict[str, float | int | str]] = []
+    prediction_rows: list[dict[str, float | int | str]] = []
+    partition_rows: list[dict[str, float | int | str]] = []
 
     for split in SPLITS:
         if split.grouped:
@@ -212,6 +344,27 @@ def run_evaluation(frame: pl.DataFrame, spec: EvaluationSpec) -> EvaluationResul
             predictions = _fit_predict(
                 x, y, train_index, test_index, seed=spec.seed + repetition
             )
+            train_artists = np.unique(groups[train_index])
+            test_artists = np.unique(groups[test_index])
+            partition_rows.append(
+                {
+                    "split": split.name,
+                    "repeticao": repetition,
+                    "train_rows": int(len(train_index)),
+                    "test_rows": int(len(test_index)),
+                    "train_artists": int(len(train_artists)),
+                    "test_artists": int(len(test_artists)),
+                    "artist_overlap": int(
+                        len(set(train_artists).intersection(test_artists))
+                    ),
+                    "train_track_sha256": _stable_hash(
+                        data["track_id"].to_numpy()[train_index]
+                    ),
+                    "test_track_sha256": _stable_hash(
+                        data["track_id"].to_numpy()[test_index]
+                    ),
+                }
+            )
             for model_name, predicted in predictions.items():
                 rows.append(
                     {
@@ -229,8 +382,41 @@ def run_evaluation(frame: pl.DataFrame, spec: EvaluationSpec) -> EvaluationResul
                         "test_artists": int(np.unique(groups[test_index]).size),
                     }
                 )
+                for row_index, prediction in zip(test_index, predicted, strict=True):
+                    row_position = int(row_index)
+                    observed = float(y[row_position])
+                    prediction_rows.append(
+                        {
+                            "split": split.name,
+                            "repeticao": repetition,
+                            "modelo": model_name,
+                            "track_id": str(data["track_id"][row_position]),
+                            "primary_artist": str(groups[row_position]),
+                            "observed": observed,
+                            "predicted": float(prediction),
+                            "absolute_error": abs(observed - float(prediction)),
+                        }
+                    )
 
-    return EvaluationResult(spec=spec, metrics=pl.DataFrame(rows))
+    metric_frame = pl.DataFrame(rows)
+    prediction_frame = pl.DataFrame(prediction_rows)
+    partition_frame = pl.DataFrame(partition_rows)
+    spec_payload = json.dumps(asdict(spec), sort_keys=True).encode("utf-8")
+    provenance = {
+        "protocol_version": spec.protocol_version,
+        "spec_sha256": sha256(spec_payload).hexdigest(),
+        "population_sha256": _stable_hash(data["track_id"].to_numpy()),
+        "population_rows": data.height,
+        "prediction_rows": prediction_frame.height,
+    }
+    return EvaluationResult(
+        spec=spec,
+        metrics=metric_frame,
+        predictions=prediction_frame,
+        partitions=partition_frame,
+        paired_intervals=_paired_artist_intervals(prediction_frame, spec),
+        provenance=provenance,
+    )
 
 
 def summarize_evaluation(
