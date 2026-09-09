@@ -50,6 +50,7 @@ from .statistics import (
     synthetic_imputation_metrics,
 )
 from .clustering import clustering_stability
+from .fingerprints import NeighbourDiagnostic, diagnose_audio_neighbours, diagnose_audio_neighbors
 from .evaluation import (
     EvaluationResult,
     EvaluationSpec,
@@ -104,6 +105,9 @@ __all__ = [
     "fit_clustered_ols",
     "joint_wald_test",
     "clustering_stability",
+    "NeighbourDiagnostic",
+    "diagnose_audio_neighbours",
+    "diagnose_audio_neighbors",
     "EvaluationResult",
     "EvaluationSpec",
     "best_model_summary",
