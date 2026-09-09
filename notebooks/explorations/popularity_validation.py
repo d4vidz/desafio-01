@@ -30,7 +30,7 @@ def _():
         with ZipFile(bundle_path) as bundle:
             bundle.extractall(root)
     if not (root / "spotify_data").exists():
-        snapshot = "5ea2e58eadcb252c4baacf07d7aa149038a73442"
+        snapshot = "a44fe651f12a418bc7aba51b0a363108e9950481"
         snapshot_root = root / f"desafio-01-{snapshot}"
         if not snapshot_root.exists():
             archive_path = root / f"desafio-01-{snapshot}.zip"
@@ -55,6 +55,7 @@ def _():
         NarrativeSection,
         add_semantic_features,
         build_data_layer,
+        diagnose_audio_neighbours,
         deterministic_sample,
         render_narrative_section,
     )
@@ -65,7 +66,7 @@ def _():
     )
     return (EvidenceStatus, NarrativeSection, Path, add_semantic_features,
             EvaluationSpec, best_model_summary, build_data_layer,
-            deterministic_sample, mo, pl, render_narrative_section, root,
+            diagnose_audio_neighbours, deterministic_sample, mo, pl, render_narrative_section, root,
             run_evaluation)
 
 
@@ -156,6 +157,68 @@ def _(EvidenceStatus, NarrativeSection, mo, pl, prepared, render_narrative_secti
     )
     mo.vstack([mo.md("## Escopo e limites"), render_narrative_section(mo, scope), mo.ui.table(collaboration), mo.md("Esta entrega estima generalização contemporânea no snapshot; não prevê o próximo hit.")])
     return (collaboration,)
+
+
+@app.cell
+def _(EvidenceStatus, NarrativeSection, diagnose_audio_neighbours, mo, pl, prepared, render_narrative_section):
+    fingerprint_features = (
+        "danceability", "energy", "loudness", "speechiness", "acousticness",
+        "instrumentalness", "liveness", "valence", "tempo", "log_duration_ms",
+    )
+    overall_fingerprint = diagnose_audio_neighbours(
+        prepared,
+        feature_columns=fingerprint_features,
+        artist_column="primary_artist",
+        genre_column=None,
+        duplicate_tolerance=0.0,
+        max_queries=200,
+        max_candidates=10_000,
+        seed=2026,
+    )
+    within_genre_fingerprint = diagnose_audio_neighbours(
+        prepared,
+        feature_columns=fingerprint_features,
+        artist_column="primary_artist",
+        genre_column="representative_track_genre",
+        duplicate_tolerance=1e-6,
+        same_genre=True,
+        max_queries=200,
+        max_candidates=10_000,
+        seed=2026,
+    )
+    fingerprint_summary = pl.concat(
+        [
+            overall_fingerprint.summary.with_columns(pl.lit("catálogo; vetores exatos").alias("probe")),
+            within_genre_fingerprint.summary.with_columns(pl.lit("mesmo gênero representativo; near-duplicates").alias("probe")),
+        ],
+        how="diagonal_relaxed",
+    ).select("probe", pl.all().exclude("probe"))
+    changed_examples = overall_fingerprint.audit.filter(
+        pl.col("before_same_artist") != pl.col("after_same_artist")
+    ).head(10)
+    fingerprint_narrative = NarrativeSection(
+        title="Auditoria exploratória de fingerprints de artista",
+        question="O vizinho acústico mais próximo tende a ser do mesmo artista, e essa taxa muda ao remover vetores duplicados?",
+        population="Uma amostra seeded de até 10.000 faixas de artista único; 200 consultas por probe.",
+        unit="uma faixa consultada e seu vizinho mais próximo",
+        method="Padronizamos dez audio features, buscamos o vizinho euclidiano e comparamos a taxa de mesmo artista antes/depois de excluir vetores exatos; repetimos dentro do gênero representativo com tolerância near-duplicate de 1e-6 nas features originais.",
+        how_to_read="Uma queda forte após exclusão sugere que duplicatas explicavam parte do fingerprint; taxa persistente sugere assinatura acústica ou estrutura de catálogo a investigar.",
+        denominator="Até 200 consultas sobre até 10.000 candidatos por probe; consultas sem candidato após exclusão saem apenas do denominador posterior e são contadas separadamente.",
+        result=f"No probe geral, a taxa foi {overall_fingerprint.summary[0, 'before_same_artist_rate']:.3f} antes e {overall_fingerprint.summary[0, 'after_same_artist_rate']:.3f} após excluir vetores exatos.",
+        interpretation="O diagnóstico mede recuperabilidade contemporânea de artista no espaço acústico, não usa artista como preditor de popularity.",
+        use="Comparar o split aleatório com artista não visto e orientar ablations de leakage em #63.",
+        limitation="É uma amostra bounded; gênero representativo reduz memberships múltiplas a uma tag e a tolerância near-duplicate requer sensibilidade antes de promoção.",
+        status=EvidenceStatus.PROTOTYPE,
+        terms={"fingerprint": "padrão acústico que pode tornar o artista reconhecível", "near-duplicate": "vetor de áudio quase idêntico dentro de tolerância explícita"},
+    )
+    mo.vstack([
+        mo.md("## Auditoria de fingerprints"),
+        render_narrative_section(mo, fingerprint_narrative),
+        mo.ui.table(fingerprint_summary),
+        mo.md("### Exemplos em que a exclusão alterou o indicador de mesmo artista"),
+        mo.ui.table(changed_examples),
+    ])
+    return fingerprint_summary, overall_fingerprint, within_genre_fingerprint
 
 
 if __name__ == "__main__":
