@@ -30,7 +30,7 @@ def _():
         with ZipFile(bundle_path) as bundle:
             bundle.extractall(root)
     if not (root / "spotify_data").exists():
-        snapshot = "cf7368ac8363aebe958eef56afb1de6f95abfc78"
+        snapshot = "e6dca72b4045cf4ab075260e1e193a980cf0e8aa"
         snapshot_root = root / f"desafio-01-{snapshot}"
         if not snapshot_root.exists():
             archive_path = root / f"desafio-01-{snapshot}.zip"
@@ -53,11 +53,12 @@ def _():
     import plotly.graph_objects as go
     import polars as pl
     from spotify_data import (CONTINUOUS_AUDIO_FEATURES, build_data_layer,
-                              fit_genre_ppmi, genre_audio_profiles,
+                              compare_genre_similarities, fit_genre_ppmi,
+                              genre_audio_profiles, genre_overlap_pairs,
                               genre_membership_matrix, robust_pca_profiles,
                               EvidenceStatus, NarrativeSection,
                               render_narrative_section)
-    return CONTINUOUS_AUDIO_FEATURES, EvidenceStatus, NarrativeSection, Path, build_data_layer, fit_genre_ppmi, genre_audio_profiles, genre_membership_matrix, go, mo, np, pl, render_narrative_section, robust_pca_profiles, root
+    return CONTINUOUS_AUDIO_FEATURES, EvidenceStatus, NarrativeSection, Path, build_data_layer, compare_genre_similarities, fit_genre_ppmi, genre_audio_profiles, genre_membership_matrix, genre_overlap_pairs, go, mo, np, pl, render_narrative_section, robust_pca_profiles, root
 
 
 @app.cell
@@ -141,8 +142,37 @@ def _(EvidenceStatus, NarrativeSection, fit_genre_ppmi, genre_membership_matrix,
 @app.cell
 def _(EvidenceStatus, NarrativeSection, genre_audio_profiles, genres, mo, pl, render_narrative_section, robust_pca_profiles, tracks):
     profiles = genre_audio_profiles(tracks, genres)
+    fractional_profiles = genre_audio_profiles(tracks, genres, fractional_weights=True)
+    single_genre_edges = genres.join(
+        tracks.select("track_id", "genre_count"), on="track_id"
+    ).filter(pl.col("genre_count") == 1).select("track_id", "track_genre")
+    single_profiles = genre_audio_profiles(tracks, single_genre_edges)
     coordinates, pca = robust_pca_profiles(profiles)
     profile_table = profiles.join(coordinates, on="track_genre").head(20)
+    sensitivity = (
+        profiles.select("track_genre", "energy_q50", "valence_q50")
+        .join(
+            fractional_profiles.select(
+                "track_genre",
+                pl.col("energy_q50").alias("energy_q50_fracionado"),
+                pl.col("valence_q50").alias("valence_q50_fracionado"),
+            ),
+            on="track_genre",
+        )
+        .join(
+            single_profiles.select(
+                "track_genre",
+                pl.col("energy_q50").alias("energy_q50_genero_unico"),
+                pl.col("valence_q50").alias("valence_q50_genero_unico"),
+            ),
+            on="track_genre",
+        )
+        .with_columns(
+            (pl.col("energy_q50") - pl.col("energy_q50_fracionado")).abs().alias("delta_energy_fracionado"),
+            (pl.col("energy_q50") - pl.col("energy_q50_genero_unico")).abs().alias("delta_energy_genero_unico"),
+        )
+        .sort(["delta_energy_genero_unico", "track_genre"], descending=[True, False])
+    )
     profiles_narrative = NarrativeSection(
         title="Perfis de áudio por gênero",
         question="Como os gêneros diferem quando resumimos suas distribuições de áudio?",
@@ -151,10 +181,10 @@ def _(EvidenceStatus, NarrativeSection, genre_audio_profiles, genres, mo, pl, re
         method="Calculamos quantis 10, 25, 50, 75 e 90 e aplicamos RobustScaler e PCA aos perfis.",
         how_to_read="Pontos próximos têm perfis agregados parecidos, não necessariamente as mesmas faixas.",
         denominator=f"{profiles.height} gêneros perfilados; a tabela mostra 20.",
-        result="A tabela expõe quantis e coordenadas que auditam a posição no gráfico.",
+        result=f"Foram perfilados {profiles.height} gêneros; {sensitivity.height} permitem comparação direta entre população completa, peso 1/k e gênero único.",
         interpretation="Esta é uma descrição comparativa de catálogos por gênero, não uma prova de clusters naturais.",
         use="Os perfis serão comparados a vizinhanças de coocorrência em #32.",
-        limitation="Sensibilidades por gênero único e peso 1/k ainda não foram executadas.",
+        limitation="Gêneros sem suporte na população de gênero único saem da comparação; diferenças descrevem sensibilidade de catálogo, não erro de medição.",
         status=EvidenceStatus.PROTOTYPE,
         terms={"quantil": "posição na distribuição, como a mediana (q50)", "RobustScaler": "escala baseada em mediana e intervalo interquartil"},
     )
@@ -162,8 +192,37 @@ def _(EvidenceStatus, NarrativeSection, genre_audio_profiles, genres, mo, pl, re
         mo.md("## 2. Perfil de áudio por gênero"),
         render_narrative_section(mo, profiles_narrative),
         mo.ui.table(profile_table.select(["track_genre", "danceability_q10", "danceability_q50", "danceability_q90", "energy_q50", "valence_q50", "PC1", "PC2"])),
+        mo.md("### Sensibilidade da população (maiores mudanças em energy mediana)"),
+        mo.ui.table(sensitivity.head(15)),
     ])
-    return coordinates, pca, profiles
+    return coordinates, fractional_profiles, pca, profiles, sensitivity, single_profiles
+
+
+@app.cell
+def _(EvidenceStatus, NarrativeSection, compare_genre_similarities, genre_overlap_pairs, genres, mo, profiles, render_narrative_section):
+    overlap_pairs = genre_overlap_pairs(genres)
+    alignment = compare_genre_similarities(overlap_pairs, profiles, permutations=499, seed=2026)
+    overlap_narrative = NarrativeSection(
+        title="Coocorrência de gêneros versus perfil de áudio",
+        question="Gêneros ligados pelas mesmas faixas também têm perfis de áudio parecidos?",
+        population=f"{alignment['pairs']} pares de gêneros presentes nas duas representações.",
+        unit="um par não ordenado de gêneros",
+        method="Medimos overlap por Jaccard de faixas distintas, similaridade por cosseno dos perfis robust-scaled e comparamos os rankings por Spearman; um teste de permutação embaralha os rótulos dos perfis.",
+        how_to_read="Spearman próximo de 1 indica rankings semelhantes; o p-valor compara o módulo da correlação observada com 499 embaralhamentos.",
+        denominator=f"{alignment['pairs']} pares; 499 permutações com seed 2026. A tabela mostra apenas os 25 maiores overlaps.",
+        result=f"A correlação observada foi {alignment['spearman']:.3f}, com p={alignment['permutation_p_value']:.3f} no teste de permutação.",
+        interpretation="A comparação quantifica se as duas noções de vizinhança carregam sinal comum; ela não transforma tags de catálogo em gêneros musicais objetivos.",
+        use="Orientar se coocorrência e perfil acústico devem aparecer como evidências complementares ou redundantes na narrativa final.",
+        limitation="Pares sem coocorrência não aparecem nesta primeira comparação; suporte desigual e taxonomia do dataset ainda influenciam o resultado.",
+        status=EvidenceStatus.PROTOTYPE,
+        terms={"Jaccard": "faixas compartilhadas divididas pela união das faixas dos dois gêneros", "Spearman": "correlação entre rankings"},
+    )
+    mo.vstack([
+        mo.md("## 3. Vizinhanças de coocorrência e áudio"),
+        render_narrative_section(mo, overlap_narrative),
+        mo.ui.table(overlap_pairs.head(25)),
+    ])
+    return alignment, overlap_pairs
 
 
 @app.cell
@@ -230,7 +289,7 @@ def _(EvidenceStatus, NarrativeSection, artists, db, mo, pl, render_narrative_se
         terms={"área fracionada": "contribuição dividida entre as relações da mesma faixa", "folha": "item final da hierarquia, aqui uma faixa"},
     )
     mo.vstack([
-        mo.md("## 3. Treemap provisório: gênero → artista → faixa"),
+        mo.md("## 4. Treemap provisório: gênero → artista → faixa"),
         render_narrative_section(mo, treemap_narrative),
         mo.ui.table(leaves.head(15)),
     ])

@@ -6,23 +6,23 @@
     "contract_version": "0.1"
   },
   "repository": {
-    "commit_at_render": "66380fcc0dda898983313717b4b86a6241c6c252",
-    "ref_at_render": "analysis/33-popularity-associations",
-    "working_tree_dirty_at_render": false,
+    "commit_at_render": "e6dca72b4045cf4ab075260e1e193a980cf0e8aa",
+    "ref_at_render": "experiment/32-genre-structure",
+    "working_tree_dirty_at_render": true,
     "environment_lock_sha256": "7da63cbb28af87881fc375c1e1c8ea702f547d7d4140697f034b5d9707e55271"
   },
   "environment": {
-    "python": "3.13.13",
+    "python": "3.14.5",
     "marimo": "0.24.0",
     "platform": "Windows-11-10.0.26200-SP0"
   },
   "notebooks": [
     {
       "notebook": "notebooks/data_contract_audit.py",
-      "notebook_sha256": "cdb6a6aede1c6b6f8b40e2398a2577bdd267c6f55c2c4d10ced066d1e778d33a",
+      "notebook_sha256": "5ed71aebc3547a24ce0f21b39f52730d1afe76bdfc535b599f544ccaf0626b59",
       "html": "artifacts/notebooks/html/data_contract_audit.html",
-      "html_sha256": "99e3ff6dd2c3e84170ff569ed13fe9d26b8acd4a7184f460362ae3725ea082c9",
-      "html_bytes": 125440,
+      "html_sha256": "52e43d7a7045b45afe0c10516b39d56c2bc3ba751cf087fc4319b68b20d7732e",
+      "html_bytes": 125439,
       "declared_evidence_statuses": [
         "infraestrutura"
       ],
@@ -37,9 +37,9 @@
     },
     {
       "notebook": "notebooks/explorations/popularity_associations.py",
-      "notebook_sha256": "635f540371b016269f3691ba05a7625358ae2945a866faf1d3d719acd1fe6292",
+      "notebook_sha256": "a15b8e50a659ce824e70177d8240475c1fe279b3f759b54bd04684bb36376a7f",
       "html": "artifacts/notebooks/html/popularity_associations.html",
-      "html_sha256": "238ebfe63a276c0fa9cd73981d194b063354e2ce5c9fcd365219361e422302da",
+      "html_sha256": "8541593f46cb4502080787f754d499585d095cea381bb20c1d305be8547ff955",
       "html_bytes": 1157418,
       "declared_evidence_statuses": [
         "protótipo"
@@ -57,10 +57,10 @@
     },
     {
       "notebook": "notebooks/explorations/genre_representations.py",
-      "notebook_sha256": "b23f71cb4ec9d0e328d8d71cadf7317e3dbc6058dae51324d283318bbba9d269",
+      "notebook_sha256": "0072761fa21a205903aa9fda58bd053299a83158f92c56317240ec93b6823df9",
       "html": "artifacts/notebooks/html/genre_representations.html",
-      "html_sha256": "7825f16c3e60df5c554974d45bb9af661c68ed30850522ca5bb947f878b061e7",
-      "html_bytes": 168245,
+      "html_sha256": "dc8d9958820f9959af6665e231e3356edd0a4de9e3d03db2a31ea711fc46f573",
+      "html_bytes": 203947,
       "declared_evidence_statuses": [
         "infraestrutura",
         "protótipo"
@@ -70,15 +70,17 @@
       "configuration": {
         "generated_with": "0.24.0",
         "app_width": "full",
-        "declared_integer_seeds": [],
+        "declared_integer_seeds": [
+          2026
+        ],
         "output_limit_bytes_per_cell": 5000000
       }
     },
     {
       "notebook": "notebooks/explorations/musical_structure.py",
-      "notebook_sha256": "68e091f0a0653540c49630680bdf70a1a6b745871e8918cf9f9d364780dedc64",
+      "notebook_sha256": "219103e50e9cd68bffd72e1a187c0bd6d8060805a118af3468997078e25fd3b2",
       "html": "artifacts/notebooks/html/musical_structure.html",
-      "html_sha256": "4d198a90552cae0ab3742e08f3b2846f803df33dba5886fadc1e2f1de8d5f650",
+      "html_sha256": "883d2609219a1b1f3e48793dc80acb2b084e48cb04b755def6fe0f477da83079",
       "html_bytes": 370621,
       "declared_evidence_statuses": [
         "protótipo"
@@ -96,9 +98,9 @@
     },
     {
       "notebook": "notebooks/explorations/popularity_validation.py",
-      "notebook_sha256": "6ee7b65dd6ee03b350d2b8ae199ae3ec0a987747681e41e5ddf199c73631bb41",
+      "notebook_sha256": "dcf4e57509c38f3e64c078635d5cbc6d08478a04981e5508d7bdfb8cd71791f4",
       "html": "artifacts/notebooks/html/popularity_validation.html",
-      "html_sha256": "e5f50673fa333530fd0d362429569901c06d97e9df148aa54f769880df4b572f",
+      "html_sha256": "d3b0edb013cfce97fcb3a52f889e0473718e8d2e18dfb36b1f448cbca36e2ca9",
       "html_bytes": 84993,
       "declared_evidence_statuses": [
         "protótipo"
@@ -116,10 +118,10 @@
     },
     {
       "notebook": "notebooks/spotify_analysis.py",
-      "notebook_sha256": "9cc83680cbdb35dd4c2566edd53192740ad2717fc96c3ff17ec70897efadba67",
+      "notebook_sha256": "2a8cabd8651dc348aebfd70a05194184ab415a8280880c448a546b9415604ba9",
       "html": "artifacts/notebooks/html/spotify_analysis.html",
-      "html_sha256": "2c9db8be19944a29315c13a568aaf20137973238da74d18e07fc8567c1ebcb6d",
-      "html_bytes": 6005751,
+      "html_sha256": "1235d8b7995de7c467167ce3f8f792328744f3cb8adf80a7833123d1c7570bdf",
+      "html_bytes": 6005750,
       "declared_evidence_statuses": [
         "infraestrutura",
         "experimento_completo",
