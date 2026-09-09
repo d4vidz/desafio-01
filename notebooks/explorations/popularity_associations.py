@@ -25,7 +25,7 @@ def _():
     if not (root / "spotify_data").exists():
         # Pin the dependency bundle to a published commit containing the
         # helpers used by this notebook; Molab imports remain reproducible.
-        snapshot = "cf7368ac8363aebe958eef56afb1de6f95abfc78"
+        snapshot = "ac4d00afb41cf661e2e2107cfd2282975f3bce84"
         snapshot_root = root / f"desafio-01-{snapshot}"
         if not snapshot_root.exists():
             archive_path = root / f"desafio-01-{snapshot}.zip"

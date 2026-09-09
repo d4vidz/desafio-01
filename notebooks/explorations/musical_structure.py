@@ -30,7 +30,7 @@ def _():
         with ZipFile(bundle_path) as bundle:
             bundle.extractall(root)
     if not (root / "spotify_data").exists():
-        snapshot = "cf7368ac8363aebe958eef56afb1de6f95abfc78"
+        snapshot = "ac4d00afb41cf661e2e2107cfd2282975f3bce84"
         snapshot_root = root / f"desafio-01-{snapshot}"
         if not snapshot_root.exists():
             archive_path = root / f"desafio-01-{snapshot}.zip"
@@ -55,10 +55,10 @@ def _():
     from sklearn.decomposition import PCA
     from sklearn.preprocessing import RobustScaler, StandardScaler
     from spotify_data import (CONTINUOUS_AUDIO_FEATURES, EvidenceStatus,
-                              NarrativeSection, build_data_layer,
+                              NarrativeSection, add_semantic_features, build_data_layer,
                               clustering_stability, deterministic_sample,
                               render_narrative_section)
-    return CONTINUOUS_AUDIO_FEATURES, EvidenceStatus, NarrativeSection, PCA, Path, RobustScaler, StandardScaler, build_data_layer, clustering_stability, deterministic_sample, go, mo, np, pl, render_narrative_section, root
+    return CONTINUOUS_AUDIO_FEATURES, EvidenceStatus, NarrativeSection, PCA, Path, RobustScaler, StandardScaler, add_semantic_features, build_data_layer, clustering_stability, deterministic_sample, go, mo, np, pl, render_narrative_section, root
 
 
 @app.cell
@@ -72,9 +72,9 @@ def _(Path, build_data_layer, mo, root):
 
 
 @app.cell
-def _(CONTINUOUS_AUDIO_FEATURES, PCA, RobustScaler, StandardScaler, deterministic_sample, mo, np, pl, tracks):
-    features = list(CONTINUOUS_AUDIO_FEATURES)
-    frame = tracks.select(["track_id", "representative_track_genre", *features]).drop_nulls()
+def _(CONTINUOUS_AUDIO_FEATURES, PCA, RobustScaler, StandardScaler, add_semantic_features, deterministic_sample, mo, np, pl, tracks):
+    features = [feature for feature in CONTINUOUS_AUDIO_FEATURES if feature != "duration_ms"] + ["log_duration_ms"]
+    frame = add_semantic_features(tracks).select(["track_id", "representative_track_genre", *features]).drop_nulls()
     frame = deterministic_sample(frame, 6_000, seed=2026)
     standard = StandardScaler().fit_transform(frame.select(features).to_numpy())
     robust_scaled = RobustScaler().fit_transform(frame.select(features).to_numpy())
@@ -102,7 +102,7 @@ def _(EvidenceStatus, NarrativeSection, deterministic_sample, go, loadings, mo, 
         result=f"Os três componentes exibidos explicam {variance['variancia_explicada'].sum():.1%} da variância padronizada.",
         interpretation="A projeção compacta permite inspecionar estrutura musical, sem provar dimensões psicológicas ou gêneros naturais.",
         use="Os componentes orientam a inspeção exploratória de clustering em #35.",
-        limitation="RobustScaler, log-duration e estabilidade com referência/null permanecem sensibilidades não concluídas.",
+        limitation="RobustScaler permanece como sensibilidade; a duração já entra em escala log e o gate de clustering abaixo usa referência/null.",
         status=EvidenceStatus.PROTOTYPE,
         terms={"loading": "peso de uma feature na combinação que forma um componente", "variância explicada": "fração da variação resumida por um componente"},
     )
@@ -112,21 +112,28 @@ def _(EvidenceStatus, NarrativeSection, deterministic_sample, go, loadings, mo, 
 
 @app.cell
 def _(EvidenceStatus, NarrativeSection, clustering_stability, mo, render_narrative_section, standard):
-    stability = clustering_stability(standard, k_values=range(2, 9), repeats=2, sample_size=3_000)
-    robust_candidates = stability.filter(stability["gate_ari"])
-    claim = "há candidatos estáveis para inspeção" if robust_candidates.height else "não há clusters naturais robustos pelo gate ARI ≥ 0,70"
+    stability = clustering_stability(
+        standard,
+        k_values=range(2, 9),
+        repeats=4,
+        null_repeats=20,
+        sample_size=1_500,
+        seed=2026,
+    )
+    robust_candidates = stability.filter(stability["gate_robusto"])
+    claim = "há candidatos que passam os dois gates para inspeção" if robust_candidates.height else "não há clusters naturais robustos pelos gates de estabilidade e separação"
     stability_narrative = NarrativeSection(
         title="Estabilidade e gate de clustering",
         question="Os agrupamentos reaparecem quando reamostramos as faixas?",
         population="A matriz padronizada, avaliada com K-means e Gaussian Mixtures para k=2..8.",
         unit="uma linha por algoritmo e número de clusters",
-        method="Repetimos ajustes em amostras e comparamos atribuições por ARI; o gate mínimo atual é ARI mediana ≥ 0,70.",
-        how_to_read="ARI alto indica concordância entre repetições; silhouette mede separação interna. Nenhuma isoladamente prova segmentação substantiva.",
-        denominator=f"{stability.height} combinações foram calculadas com duas repetições exploratórias.",
+        method="Repetimos quatro ajustes bootstrap e comparamos suas atribuições na mesma população de referência por ARI. Em vinte referências nulas, permutamos cada feature independentemente para preservar marginais e remover estrutura conjunta.",
+        how_to_read="O gate robusto exige ARI mediana ≥ 0,70 e silhouette observada acima do percentil 95 das referências nulas.",
+        denominator=f"{stability.height} combinações de K-means/GMM e k=2..8; amostra máxima de 1.500 faixas, quatro bootstraps e vinte referências por combinação.",
         result=f"Nesta execução, {claim}.",
         interpretation="Este é um diagnóstico inicial de repetibilidade, não uma conclusão sobre clusters naturais.",
         use="A seleção final depende do protocolo de #35, incluindo referência/null e sensibilidades.",
-        limitation="Referência/null, repetição completa e avaliação de sensibilidade ainda não foram executadas.",
+        limitation="A bateria é bounded; RobustScaler e mais repetições permanecem sensibilidades antes de qualquer promoção.",
         status=EvidenceStatus.PROTOTYPE,
         terms={"ARI": "concordância entre partições ajustada ao acaso", "stability": "persistência do agrupamento sob reamostragem"},
     )
@@ -137,7 +144,7 @@ def _(EvidenceStatus, NarrativeSection, clustering_stability, mo, render_narrati
 @app.cell
 def _(EvidenceStatus, NarrativeSection, mo, pca_frame, render_narrative_section, stability):
     best = stability.sort(
-        ["gate_ari", "ARI_mediana", "silhouette", "algoritmo", "k"],
+        ["gate_robusto", "ARI_mediana", "silhouette", "algoritmo", "k"],
         descending=[True, True, True, False, False],
     ).head(1)
     brief = NarrativeSection(
@@ -151,7 +158,7 @@ def _(EvidenceStatus, NarrativeSection, mo, pca_frame, render_narrative_section,
         result="O notebook oferece uma projeção e um diagnóstico bounded, mas não encerra a investigação de clusters.",
         interpretation="A conclusão permitida é descritiva: a estrutura pode ser inspecionada, sem afirmar personas ou fronteiras naturais.",
         use="O resultado orienta a especificação de estabilidade e null em #35.",
-        limitation="Clustering completo, null e 3D permanecem follow-up; não há claim final neste notebook.",
+        limitation="Mais repetições, RobustScaler e revisão independente permanecem follow-up; não há claim final neste notebook.",
         status=EvidenceStatus.PROTOTYPE,
         terms={"evidence brief": "resumo curto que aponta resultado, evidência e limites para revisão"},
     )
