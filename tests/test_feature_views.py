@@ -1,5 +1,6 @@
 import numpy as np
 import polars as pl
+import pytest
 from pathlib import Path
 
 from spotify_data import (
@@ -180,6 +181,17 @@ def test_multiplicity_helpers_preserve_shape_and_pool_heterogeneity():
     assert pooled["q_df"] == 1
 
 
+def test_random_effects_pool_rejects_non_finite_or_non_positive_uncertainty():
+    for invalid in (0.0, -0.1, float("nan"), float("inf")):
+        estimates = pl.DataFrame({"estimate": [1.0], "standard_error": [invalid]})
+        with pytest.raises(ValueError, match="standard_error"):
+            random_effects_pool(estimates)
+    with pytest.raises(ValueError, match="estimate"):
+        random_effects_pool(
+            pl.DataFrame({"estimate": [float("nan")], "standard_error": [0.2]})
+        )
+
+
 def test_artist_partition_is_stable_and_groups_equal_artist_values():
     artists = ["A", "B", "A", "C", "B"]
     first = artist_partition(artists)
@@ -234,7 +246,9 @@ def test_synthetic_imputation_metrics_keeps_mask_alignment_and_training_boundary
         train_rows=np.array([True, True, False, False]),
     )
     assert metrics["n_masked_cells"] == 3
-    assert np.isclose(metrics["masked_mae"], (10.0 + 2.0 + 4.0) / 3)
+    assert metrics["n_holdout_masked_cells"] == 1
+    assert np.isclose(metrics["train_masked_mae"], (10.0 + 2.0) / 2)
+    assert np.isclose(metrics["masked_mae"], 4.0)
 
 
 def test_clustering_stability_returns_both_algorithms_and_gate_columns():

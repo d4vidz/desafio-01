@@ -61,6 +61,10 @@ def random_effects_pool(estimates: pl.DataFrame, *, alpha: float = 0.05) -> dict
             "tau2": float("nan"),
             "n": 0.0,
         }
+    if not np.all(np.isfinite(y)):
+        raise ValueError("estimate values must be finite")
+    if not np.all(np.isfinite(se)) or np.any(se <= 0):
+        raise ValueError("standard_error values must be finite and strictly positive")
     weights = 1 / np.maximum(se, 1e-12) ** 2
     fixed = float(np.sum(weights * y) / np.sum(weights))
     q = float(np.sum(weights * (y - fixed) ** 2))
@@ -173,6 +177,8 @@ def synthetic_imputation_metrics(
         "rows_used": float(complete_rows.sum()),
         "retention_fraction": float(complete_rows.mean()),
         "n_masked_cells": 0.0,
+        "n_holdout_masked_cells": 0.0,
+        "train_masked_mae": float("nan"),
         "masked_mae": float("nan"),
     }
     if transformer is None:
@@ -184,15 +190,27 @@ def synthetic_imputation_metrics(
         raise ValueError("train_rows must select at least one row")
     fitted = transformer.fit(masked[train_rows])
     reconstructed = np.asarray(fitted.transform(masked), dtype=float)
-    masked_cells = mask
-    if not masked_cells.any():
+    if not mask.any():
         raise ValueError("mask must contain at least one masked cell")
-    errors = np.abs(reconstructed[masked_cells] - observed[masked_cells])
+    train_mask = mask & train_rows[:, None]
+    holdout_mask = mask & ~train_rows[:, None]
+    train_error = (
+        float(np.mean(np.abs(reconstructed[train_mask] - observed[train_mask])))
+        if train_mask.any()
+        else float("nan")
+    )
+    holdout_error = (
+        float(np.mean(np.abs(reconstructed[holdout_mask] - observed[holdout_mask])))
+        if holdout_mask.any()
+        else float("nan")
+    )
     base.update(
         rows_used=float(observed.shape[0]),
         retention_fraction=1.0,
-        n_masked_cells=float(masked_cells.sum()),
-        masked_mae=float(np.mean(errors)),
+        n_masked_cells=float(mask.sum()),
+        n_holdout_masked_cells=float(holdout_mask.sum()),
+        train_masked_mae=train_error,
+        masked_mae=holdout_error,
     )
     return base
 
