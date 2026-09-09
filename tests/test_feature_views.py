@@ -1,18 +1,25 @@
 import numpy as np
 import polars as pl
+import pytest
 from pathlib import Path
 
 from spotify_data import (
     add_semantic_features,
+    artist_partition,
     bh_fdr,
+    coefficient_confidence_intervals,
     deterministic_sample,
+    eligible_group_summary,
     fit_genre_ppmi,
     genre_audio_profiles,
     genre_membership_matrix,
     holm_adjust,
     random_effects_pool,
+    synthetic_imputation_metrics,
     build_data_layer,
 )
+from sklearn.impute import SimpleImputer
+from spotify_data.statistics import fit_clustered_ols, joint_wald_test
 from spotify_data.clustering import clustering_stability
 from spotify_data.feature_views import _ppmi_from_cooccurrence
 from spotify_data.notebook_ui import EvidenceStatus, NarrativeSection
@@ -170,6 +177,78 @@ def test_multiplicity_helpers_preserve_shape_and_pool_heterogeneity():
     pooled = random_effects_pool(pl.DataFrame({"estimate": [1.0, 2.0], "standard_error": [0.2, 0.2]}))
     assert pooled["n"] == 2
     assert 0 <= pooled["i2"] <= 1
+    assert pooled["ci_low"] < pooled["estimate"] < pooled["ci_high"]
+    assert pooled["q_df"] == 1
+
+
+def test_random_effects_pool_rejects_non_finite_or_non_positive_uncertainty():
+    for invalid in (0.0, -0.1, float("nan"), float("inf")):
+        estimates = pl.DataFrame({"estimate": [1.0], "standard_error": [invalid]})
+        with pytest.raises(ValueError, match="standard_error"):
+            random_effects_pool(estimates)
+    with pytest.raises(ValueError, match="estimate"):
+        random_effects_pool(
+            pl.DataFrame({"estimate": [float("nan")], "standard_error": [0.2]})
+        )
+
+
+def test_artist_partition_is_stable_and_groups_equal_artist_values():
+    artists = ["A", "B", "A", "C", "B"]
+    first = artist_partition(artists)
+    second = artist_partition(list(reversed(artists)))[::-1]
+    np.testing.assert_array_equal(first, second)
+    assert first[0] == first[2]
+    assert first[1] == first[4]
+
+
+def test_clustered_ols_exposes_individual_ci_and_joint_wald():
+    frame = pl.DataFrame(
+        {
+            "y": [1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0],
+            "x1": [0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0],
+            "x2": [1.0, 0.0, 1.0, 0.0, 1.0, 0.0, 1.0, 0.0],
+            "group": ["a", "a", "b", "b", "c", "c", "d", "d"],
+        }
+    )
+    model, names = fit_clustered_ols(frame, outcome="y", features=["x1", "x2"], controls=[], group="group")
+    intervals = coefficient_confidence_intervals(model, [1, 2])
+    assert names == ["x1", "x2"]
+    assert intervals.shape == (2, 2)
+    assert np.isfinite(intervals).all()
+    assert 0 <= joint_wald_test(model, 2) <= 1
+
+
+def test_eligible_group_summary_applies_both_thresholds_before_any_limit():
+    frame = pl.DataFrame(
+        {
+            "genre": ["eligible"] * 300 + ["too_few_tracks"] * 299 + ["too_few_artists"] * 300,
+            "artist": [f"a{i}" for i in range(100) for _ in range(3)]
+            + [f"b{i % 100}" for i in range(299)] + [f"c{i % 99}" for i in range(300)],
+        }
+    )
+    eligible = eligible_group_summary(frame, group="genre", cluster="artist", min_tracks=300, min_clusters=100)
+    assert eligible["genre"].to_list() == ["eligible"]
+
+
+def test_synthetic_imputation_metrics_keeps_mask_alignment_and_training_boundary():
+    observed = np.array([[0.0, 10.0], [2.0, 20.0], [100.0, 30.0], [4.0, 40.0]])
+    mask = np.array([[False, True], [True, False], [False, False], [True, False]])
+    masked = observed.copy()
+    masked[mask] = np.nan
+    complete = synthetic_imputation_metrics(observed, masked, mask)
+    assert complete["rows_used"] == 1
+    assert complete["retention_fraction"] == 0.25
+    metrics = synthetic_imputation_metrics(
+        observed,
+        masked,
+        mask,
+        transformer=SimpleImputer(strategy="median"),
+        train_rows=np.array([True, True, False, False]),
+    )
+    assert metrics["n_masked_cells"] == 3
+    assert metrics["n_holdout_masked_cells"] == 1
+    assert np.isclose(metrics["train_masked_mae"], (10.0 + 2.0) / 2)
+    assert np.isclose(metrics["masked_mae"], 4.0)
 
 
 def test_clustering_stability_returns_both_algorithms_and_gate_columns():

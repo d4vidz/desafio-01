@@ -24,10 +24,17 @@ do branch em `35f72904a6e76ee61a5c9b9c28b072e25b59001e`; os commits posteriores
 `6e6887a` e `ca319a6` alteraram somente documentação e o manifesto de
 tradução, sem alterar os notebooks. Eles baixam, de forma explícita, o
 contexto compartilhado pinado em
-`405a0d58b513eaeb8daeac4d2b2b98a65e57a963`; esse pin inclui o helper de
+`cf7368ac8363aebe958eef56afb1de6f95abfc78`; esse pin inclui os helpers
+estatísticos corrigidos do MR !4 e o helper de
 amostragem determinística validado na #77 e é a fronteira dos
 módulos/CSV usados pelo bootstrap, enquanto o código do notebook e os
 artefatos são lidos do branch.
+
+Em 09/09/2026, o notebook de associações do head `ab8276d` foi executado
+em ambiente Molab limpo: 17 títulos e 9 tabelas renderizaram, incluindo
+confirmação, heterogeneidade/pooling e imputação sintética, com zero erros
+visíveis. A URL fixa da revisão é
+https://molab.marimo.io/github/d4vidz/desafio-01/blob/ab8276d5194461e7c67fd00c357e03c8ed753bdc/notebooks/explorations/popularity_associations.py/server.
 
 | Notebook | Preview contextual no Molab | Runtime compartilhado | Verificação em 03/09/2026 (BRT) |
 | --- | --- | --- | --- |
