@@ -254,6 +254,12 @@ def test_synthetic_imputation_metrics_keeps_mask_alignment_and_training_boundary
 def test_clustering_stability_returns_both_algorithms_and_gate_columns():
     rng = np.random.default_rng(2026)
     matrix = np.vstack([rng.normal(loc=-2, size=(30, 3)), rng.normal(loc=2, size=(30, 3))])
-    result = clustering_stability(matrix, k_values=range(2, 3), repeats=2)
+    result = clustering_stability(
+        matrix, k_values=range(2, 3), repeats=2, null_repeats=4
+    )
     assert set(result["algoritmo"]) == {"kmeans", "gmm"}
     assert "gate_ari" in result.columns
+    assert {"null_silhouette_p95", "gate_separacao", "gate_robusto"}.issubset(
+        result.columns
+    )
+    assert (result["gate_robusto"] <= result["gate_ari"]).all()
