@@ -45,6 +45,14 @@ def find_local_root(cwd: Path, notebook_path: Path) -> Path | None:
     return None
 
 
+def snapshot_is_complete(snapshot_root: Path) -> bool:
+    """Return whether a downloaded snapshot has both code and canonical data."""
+
+    return (snapshot_root / "spotify_data").exists() and (
+        snapshot_root / "data" / "raw" / "spotify_tracks.csv"
+    ).is_file()
+
+
 def update_notebook(notebook: Path, commit: str) -> bool:
     """Replace exactly one Molab context pin and report whether it changed."""
 

@@ -37,7 +37,10 @@ def _():
     if local_root is None:
         repo_root = Path.cwd()
         snapshot_root = repo_root / f"desafio-01-{snapshot}"
-        if not (snapshot_root / "spotify_data").exists():
+        if not (
+            (snapshot_root / "spotify_data").exists()
+            and (snapshot_root / "data" / "raw" / "spotify_tracks.csv").is_file()
+        ):
             archive_path = repo_root / f"desafio-01-{snapshot}.zip"
             urlretrieve(f"https://github.com/d4vidz/desafio-01/archive/{snapshot}.zip", archive_path)
             with ZipFile(archive_path) as archive:

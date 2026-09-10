@@ -12,7 +12,7 @@ from scripts.render_notebooks import (
     source_digest,
 )
 from scripts.update_molab_context import SNAPSHOT_PATTERN
-from scripts.update_molab_context import find_local_root
+from scripts.update_molab_context import find_local_root, snapshot_is_complete
 
 
 def test_every_canonical_notebook_declares_evidence_maturity():
@@ -33,7 +33,8 @@ def test_every_canonical_notebook_declares_reproducible_molab_bootstrap():
         assert source_hash in source, notebook
         assert "observed_source != expected_source" in source, notebook
         assert "snapshot_root =" in source, notebook
-        assert 'if not (snapshot_root / "spotify_data").exists():' in source, notebook
+        assert '(snapshot_root / "spotify_data").exists()' in source, notebook
+        assert '(snapshot_root / "data" / "raw" / "spotify_tracks.csv").is_file()' in source, notebook
         assert "spotify_molab_bundle" not in source, notebook
         assert "local_root = next" in source, notebook
         assert "Path(__file__).resolve().parents" in source, notebook
@@ -64,6 +65,16 @@ def test_find_local_root_rejects_incomplete_candidate(tmp_path):
     (repo / "pyproject.toml").write_text("", encoding="utf-8")
 
     assert find_local_root(tmp_path, notebook) is None
+
+
+def test_snapshot_requires_code_and_canonical_csv(tmp_path):
+    snapshot = tmp_path / "snapshot"
+    (snapshot / "spotify_data").mkdir(parents=True)
+    assert not snapshot_is_complete(snapshot)
+    csv_path = snapshot / "data" / "raw" / "spotify_tracks.csv"
+    csv_path.parent.mkdir(parents=True)
+    csv_path.write_text("track_id\n", encoding="utf-8")
+    assert snapshot_is_complete(snapshot)
 
 
 def test_committed_manifest_matches_current_sources_and_html():
