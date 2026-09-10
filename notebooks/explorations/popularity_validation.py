@@ -198,6 +198,8 @@ def _(EvidenceStatus, NarrativeSection, diagnose_audio_neighbours, mo, pl, prepa
     ).head(10)
     overall_before_n = overall_fingerprint.summary[0, "before_eligible_queries"]
     overall_after_n = overall_fingerprint.summary[0, "after_eligible_queries"]
+    within_genre_before_n = within_genre_fingerprint.summary[0, "before_eligible_queries"]
+    within_genre_after_n = within_genre_fingerprint.summary[0, "after_eligible_queries"]
     fingerprint_narrative = NarrativeSection(
         title="Auditoria exploratória de fingerprints de artista",
         question="O vizinho acústico mais próximo tende a ser do mesmo artista, e essa taxa muda ao remover vetores duplicados?",
@@ -205,7 +207,7 @@ def _(EvidenceStatus, NarrativeSection, diagnose_audio_neighbours, mo, pl, prepa
         unit="uma faixa consultada e seu vizinho mais próximo",
         method="Padronizamos dez audio features, buscamos o vizinho euclidiano e comparamos a taxa de mesmo artista antes/depois de excluir vetores exatos; repetimos dentro do gênero representativo com tolerância near-duplicate de 1e-6 nas features originais.",
         how_to_read="Uma queda forte após exclusão sugere que duplicatas explicavam parte do fingerprint; taxa persistente sugere assinatura acústica ou estrutura de catálogo a investigar.",
-        denominator=f"No probe geral, {overall_before_n} consultas compõem a taxa anterior e {overall_after_n} a taxa posterior, sobre {overall_fingerprint.summary[0, 'candidate_rows']} candidatos. Consultas sem candidato posterior são contadas separadamente.",
+        denominator=f"No probe geral, {overall_before_n} consultas compõem a taxa anterior e {overall_after_n} a posterior, sobre {overall_fingerprint.summary[0, 'candidate_rows']} candidatos. No probe por gênero, os denominadores são {within_genre_before_n} e {within_genre_after_n}, sobre {within_genre_fingerprint.summary[0, 'candidate_rows']} candidatos. Consultas sem candidato posterior são contadas separadamente.",
         result=f"No probe geral, a taxa foi {overall_fingerprint.summary[0, 'before_same_artist_rate']:.3f} antes e {overall_fingerprint.summary[0, 'after_same_artist_rate']:.3f} após excluir vetores exatos.",
         interpretation="O diagnóstico mede recuperabilidade contemporânea de artista no espaço acústico, não usa artista como preditor de popularity.",
         use="Comparar o split aleatório com artista não visto e orientar ablations de leakage em #63.",
