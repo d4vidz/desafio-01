@@ -23,21 +23,24 @@ def _():
     from zipfile import ZipFile
 
     repo_root = Path.cwd()
-    bundle_path = repo_root / "spotify_molab_bundle.zip"
-    if not (repo_root / "spotify_data").exists() and bundle_path.exists():
-        with ZipFile(bundle_path) as bundle:
-            bundle.extractall(repo_root)
-    if not (repo_root / "spotify_data").exists():
-        snapshot = "cf7368ac8363aebe958eef56afb1de6f95abfc78"
+    snapshot = "cf7368ac8363aebe958eef56afb1de6f95abfc78"
+    local_repo = (repo_root / ".git").exists() and (repo_root / "pyproject.toml").exists()
+    if not local_repo:
         snapshot_root = repo_root / f"desafio-01-{snapshot}"
         if not snapshot_root.exists():
-            archive_path = repo_root / f"desafio-01-{snapshot}.zip"
-            urlretrieve(f"https://github.com/d4vidz/desafio-01/archive/{snapshot}.zip", archive_path)
-            with ZipFile(archive_path) as archive:
-                archive.extractall(repo_root)
+            bundle_path = repo_root / "spotify_molab_bundle.zip"
+            if bundle_path.exists():
+                snapshot_root.mkdir()
+                with ZipFile(bundle_path) as bundle:
+                    bundle.extractall(snapshot_root)
+            else:
+                archive_path = repo_root / f"desafio-01-{snapshot}.zip"
+                urlretrieve(f"https://github.com/d4vidz/desafio-01/archive/{snapshot}.zip", archive_path)
+                with ZipFile(archive_path) as archive:
+                    archive.extractall(repo_root)
         repo_root = snapshot_root
     if not (repo_root / "spotify_data").exists():
-        repo_root = Path(__file__).resolve().parents[1]
+        raise RuntimeError(f"Contexto Spotify não encontrado em {repo_root}.")
     csv_snapshot = repo_root / "data" / "raw" / "spotify_tracks.csv"
     expected_source = "1a769bbbbb2fa4451d4309248349799ce8ab5efc21e053e2bb3aa28ddcb53d83"
     if csv_snapshot.exists():

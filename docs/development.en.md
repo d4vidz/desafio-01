@@ -37,11 +37,15 @@ Primary development remains local because it provides stable access to the CSV, 
 
 The GitHub-backed preview receives the selected `.py` file, not the whole
 repository tree. Each notebook therefore contains a small bootstrap that
-downloads a ZIP archive from an immutable commit. That snapshot supplies
-`spotify_data/` and the CSV; the CSV hash is checked before analysis. The
-snapshot commit must contain the shared layer and required data, but it need not
-be the same commit as the entrypoint when only that notebook's narrative
-changed.
+downloads a ZIP archive from an immutable commit. In a local worktree, the
+bootstrap continues to use local files. In Molab, it always uses only
+`desafio-01-<snapshot>`; when present, a temporary `spotify_molab_bundle.zip`
+is also extracted inside that isolated directory. A stray `spotify_data/` in
+the working directory can therefore never replace the pinned snapshot. That
+snapshot supplies `spotify_data/` and the CSV; the CSV hash is checked before
+analysis. The snapshot commit must contain the shared layer and required data,
+but it need not be the same commit as the entrypoint when only that notebook's
+narrative changed.
 
 When changing `spotify_data/`, the contract, or the CSV, update every pin
 explicitly:

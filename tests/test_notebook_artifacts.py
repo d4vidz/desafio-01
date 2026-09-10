@@ -31,6 +31,11 @@ def test_every_canonical_notebook_declares_reproducible_molab_bootstrap():
         assert "desafio-01/archive/{snapshot}.zip" in source, notebook
         assert source_hash in source, notebook
         assert "observed_source != expected_source" in source, notebook
+        assert "local_repo =" in source, notebook
+        assert "if not local_repo:" in source, notebook
+        assert "snapshot_root =" in source, notebook
+        assert "bundle.extractall(snapshot_root)" in source, notebook
+        assert "if not (root / \"spotify_data\").exists() and" not in source, notebook
     assert len(snapshots) == 1
 
 

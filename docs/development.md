@@ -37,10 +37,15 @@ O desenvolvimento principal continua local porque oferece acesso estável ao CSV
 
 O preview GitHub-backed recebe o arquivo `.py` selecionado, não a árvore inteira
 do repositório. Por isso cada notebook contém um bootstrap pequeno que baixa um
-arquivo ZIP de um commit imutável. Esse snapshot fornece `spotify_data/` e o CSV;
-o hash do CSV é conferido antes da análise. O commit do snapshot deve conter a
-camada compartilhada e os dados necessários, mas não precisa ser o mesmo commit
-do arquivo de entrada quando apenas a narrativa daquele notebook mudou.
+arquivo ZIP de um commit imutável. Em uma worktree local, o bootstrap continua
+usando os arquivos locais. No Molab, ele sempre usa exclusivamente
+`desafio-01-<snapshot>`; um `spotify_molab_bundle.zip` temporário, quando
+presente, também é extraído dentro desse diretório isolado. Assim, um
+`spotify_data/` solto no diretório de trabalho nunca pode substituir o snapshot.
+Esse snapshot fornece `spotify_data/` e o CSV; o hash do CSV é conferido antes da
+análise. O commit do snapshot deve conter a camada compartilhada e os dados
+necessários, mas não precisa ser o mesmo commit do arquivo de entrada quando
+apenas a narrativa daquele notebook mudou.
 
 Ao publicar uma alteração em `spotify_data/`, no contrato ou no CSV, atualize
 explicitamente todos os pins:

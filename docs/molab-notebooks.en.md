@@ -50,7 +50,9 @@ smoke test of the content promoted to `main`, not a replacement for CI or analyt
 200 alone does not prove execution. The preview has a temporary workspace and
 does not automatically mount the repository tree. Each notebook bootstrap
 downloads the shared pinned context above and checks the CSV hash before
-importing the modules.
+importing the modules. In Molab, the context always lives in
+`desafio-01-<snapshot>`; if `spotify_molab_bundle.zip` is present, it is
+extracted into that isolated directory, never directly into the workspace.
 
 This flow creates one link per notebook, all pointing to the same repository
 and branch; it does not create one file browser that switches notebooks inside
@@ -60,8 +62,8 @@ flow.
 
 Without a mirror, the fallback is to upload the files through the File Browser;
 the CSV and modules must be present in the expected tree. A temporary bundle
-can be used for this test, but it must not be committed or replace the
-versioned CSV.
+can be used for this test, but it must not be committed, replace the versioned
+CSV, or replace the snapshot directory.
 
 After a new commit is published to GitLab, update the GitHub mirror before
 using the preview. The table must record the source commit/ref, verification
