@@ -6,7 +6,7 @@
     "contract_version": "0.1"
   },
   "repository": {
-    "commit_at_render": "6c157a015650bceb822b14b8b4af38001cf9d849",
+    "commit_at_render": "3fffda9fa901ff8e59e7392a1ff897615f06d5f4",
     "ref_at_render": "fix/molab-snapshot-isolation",
     "working_tree_dirty_at_render": false,
     "environment_lock_sha256": "7da63cbb28af87881fc375c1e1c8ea702f547d7d4140697f034b5d9707e55271"
@@ -19,10 +19,10 @@
   "notebooks": [
     {
       "notebook": "notebooks/data_contract_audit.py",
-      "notebook_sha256": "0fbea2bc9d37e146e8f66809f2881f58365d0b328c9400e12e4b0571cadfc0dc",
+      "notebook_sha256": "cf310628414fbe854ead39ea06cad7fe00336991de05ed85725f4575c42508ed",
       "html": "artifacts/notebooks/html/data_contract_audit.html",
-      "html_sha256": "4bb2b84325376b47cb83e3e57c9fa63a3e2e285a83934384cb196d9174771e10",
-      "html_bytes": 126352,
+      "html_sha256": "db8a7547850fe09bceb0f0d57c46aaa6ee3222077871a5580534fa13209de2bf",
+      "html_bytes": 126778,
       "declared_evidence_statuses": [
         "infraestrutura"
       ],
@@ -37,10 +37,10 @@
     },
     {
       "notebook": "notebooks/explorations/popularity_associations.py",
-      "notebook_sha256": "7331aff7662aee62beed4bd46be38bfacbcbb26a5e3578515bba5b6a9a6d8fd9",
+      "notebook_sha256": "7b5cbd60e860278c886bc3070399973a2f7b0d3427b650659b1e269eb3a356a9",
       "html": "artifacts/notebooks/html/popularity_associations.html",
-      "html_sha256": "d8d2c472dbaf3a346c36927402d052b09e907b2fb970df3daaabb07e839a7228",
-      "html_bytes": 1157399,
+      "html_sha256": "9fa34550ef8f1a653ef3d2c8a75edbe58ca5acfc220129bbe6e6b8309a89b685",
+      "html_bytes": 1157825,
       "declared_evidence_statuses": [
         "protótipo"
       ],
@@ -57,10 +57,10 @@
     },
     {
       "notebook": "notebooks/explorations/genre_representations.py",
-      "notebook_sha256": "cc13c3642e14452ef4192c7248eb2639b54355d3b8ff7c0111bc0a5302c3559e",
+      "notebook_sha256": "ef43059a3ad84d1c308e34a69503f260e788b25b4e1f4941d13c2eed54ad2a55",
       "html": "artifacts/notebooks/html/genre_representations.html",
-      "html_sha256": "6e36111c34c8feb288931dea71991a3dbad6c7e2889b88479a3cc7ea9db55e10",
-      "html_bytes": 169153,
+      "html_sha256": "daad8d1f5196ff02a7edb5913951118f6bc301f4340d39d6976067d21c5d157d",
+      "html_bytes": 169577,
       "declared_evidence_statuses": [
         "infraestrutura",
         "protótipo"
@@ -76,10 +76,10 @@
     },
     {
       "notebook": "notebooks/explorations/musical_structure.py",
-      "notebook_sha256": "63a31b2fadd40ddfaaaf1b90845583195afea4fdb0831bd96c0a63046dfb5562",
+      "notebook_sha256": "0af688ea892cfcae2fca1a78a705ae11d0981796e513460fb044d734d8b282e7",
       "html": "artifacts/notebooks/html/musical_structure.html",
-      "html_sha256": "62c7364f8ae4f23620457bb0a556259a9df9c0e0854add50c76af50c70d12162",
-      "html_bytes": 371534,
+      "html_sha256": "6a68f82a4981d9fcd46b494c5081f4010ddc94f3cc9bcae9fb936fc55126cc97",
+      "html_bytes": 371960,
       "declared_evidence_statuses": [
         "protótipo"
       ],
@@ -96,10 +96,10 @@
     },
     {
       "notebook": "notebooks/explorations/popularity_validation.py",
-      "notebook_sha256": "41528557d6fd143be8c47c93f51f0a802b847eec7951ae59c8d0b4d7e71c004d",
+      "notebook_sha256": "358aeef4532b646aaf78e1c3662f26e947a9ecd552622bdb71b54d6d78c1f96e",
       "html": "artifacts/notebooks/html/popularity_validation.html",
-      "html_sha256": "f5392c1b141ab087de4289b7d58c74e2cc16ff9c4b203d0171a30227e65c60f0",
-      "html_bytes": 85906,
+      "html_sha256": "5d2185100e142178609eb5a63cb2a553aacf56bd9fddc6661a37b6044e16f92a",
+      "html_bytes": 86332,
       "declared_evidence_statuses": [
         "protótipo"
       ],
@@ -116,10 +116,10 @@
     },
     {
       "notebook": "notebooks/spotify_analysis.py",
-      "notebook_sha256": "6a99bbc1cb858ae539dc1cab31e25fe7194a7792c8135db69340abf17a518fc6",
+      "notebook_sha256": "03a16f52e97d1e2c4a7a9aa1e295827a136acf7239d9a4463968cc408951bbbe",
       "html": "artifacts/notebooks/html/spotify_analysis.html",
-      "html_sha256": "55f7cae8a6ad36a0bc111833bdea3a65897bf5ac8da01c1fd9c5bcd60b289d1c",
-      "html_bytes": 6006618,
+      "html_sha256": "902a79a096592ad355e5e07d6abf9af890a7be82ba18e0e256f5ff1a861592d7",
+      "html_bytes": 6007044,
       "declared_evidence_statuses": [
         "infraestrutura",
         "experimento_completo",
