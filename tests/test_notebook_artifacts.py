@@ -12,6 +12,7 @@ from scripts.render_notebooks import (
     source_digest,
 )
 from scripts.update_molab_context import SNAPSHOT_PATTERN
+from scripts.update_molab_context import find_local_root
 
 
 def test_every_canonical_notebook_declares_evidence_maturity():
@@ -31,12 +32,38 @@ def test_every_canonical_notebook_declares_reproducible_molab_bootstrap():
         assert "desafio-01/archive/{snapshot}.zip" in source, notebook
         assert source_hash in source, notebook
         assert "observed_source != expected_source" in source, notebook
-        assert "local_repo =" in source, notebook
-        assert "if not local_repo:" in source, notebook
         assert "snapshot_root =" in source, notebook
-        assert "bundle.extractall(snapshot_root)" in source, notebook
+        assert 'if not (snapshot_root / "spotify_data").exists():' in source, notebook
+        assert "spotify_molab_bundle" not in source, notebook
+        assert "local_root = next" in source, notebook
+        assert "Path(__file__).resolve().parents" in source, notebook
+        assert 'and (candidate / "spotify_data").exists()' in source, notebook
         assert "if not (root / \"spotify_data\").exists() and" not in source, notebook
     assert len(snapshots) == 1
+
+
+def test_find_local_root_uses_cwd_or_notebook_ancestors(tmp_path):
+    repo = tmp_path / "repo"
+    notebook = repo / "notebooks" / "analysis.py"
+    notebook.parent.mkdir(parents=True)
+    notebook.write_text("", encoding="utf-8")
+    (repo / ".git").write_text("gitdir: test", encoding="utf-8")
+    (repo / "pyproject.toml").write_text("", encoding="utf-8")
+    (repo / "spotify_data").mkdir()
+
+    assert find_local_root(tmp_path / "elsewhere", notebook) == repo
+    assert find_local_root(repo / "notebooks", notebook) == repo
+
+
+def test_find_local_root_rejects_incomplete_candidate(tmp_path):
+    repo = tmp_path / "repo"
+    notebook = repo / "notebooks" / "analysis.py"
+    notebook.parent.mkdir(parents=True)
+    notebook.write_text("", encoding="utf-8")
+    (repo / ".git").write_text("gitdir: test", encoding="utf-8")
+    (repo / "pyproject.toml").write_text("", encoding="utf-8")
+
+    assert find_local_root(tmp_path, notebook) is None
 
 
 def test_committed_manifest_matches_current_sources_and_html():

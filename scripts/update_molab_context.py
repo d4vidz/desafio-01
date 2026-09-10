@@ -25,6 +25,26 @@ NOTEBOOKS = (
 SNAPSHOT_PATTERN = re.compile(r'(?m)^(?P<indent>\s*)snapshot = "(?P<sha>[0-9a-f]{40})"$')
 
 
+def find_local_root(cwd: Path, notebook_path: Path) -> Path | None:
+    """Find the nearest repository root from runtime and notebook locations."""
+
+    starts = (cwd, *notebook_path.resolve().parents)
+    seen: set[Path] = set()
+    for start in starts:
+        for candidate in (start, *start.parents):
+            candidate = candidate.resolve()
+            if candidate in seen:
+                continue
+            seen.add(candidate)
+            if (
+                (candidate / ".git").exists()
+                and (candidate / "pyproject.toml").exists()
+                and (candidate / "spotify_data").exists()
+            ):
+                return candidate
+    return None
+
+
 def update_notebook(notebook: Path, commit: str) -> bool:
     """Replace exactly one Molab context pin and report whether it changed."""
 

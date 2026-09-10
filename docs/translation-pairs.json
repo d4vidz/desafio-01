@@ -40,7 +40,7 @@
     {
       "canonical": "docs/development.md",
       "translation": "docs/development.en.md",
-      "canonical_sha256": "2f4cdde41b8ea21c93a6af439e1a6f747aa60e4d50295aa12e0635cf1991dd76"
+      "canonical_sha256": "96bd0e6812c9fa491452195879a1e79907c5a43b2ec4ed40393d2164d126d704"
     },
     {
       "canonical": "docs/team-next-steps.md",
@@ -50,7 +50,7 @@
     {
       "canonical": "docs/molab-notebooks.md",
       "translation": "docs/molab-notebooks.en.md",
-      "canonical_sha256": "2dee662e2d8a97bb1ed34ec8cc15e41784b662bd8f078fbbc15521773a4a4c60"
+      "canonical_sha256": "555effd7e8656c2b5e27d33ae892d009ca0e466b0f9e9a78ae65316ea8a06c74"
     },
     {
       "canonical": "docs/categorical-representation.md",

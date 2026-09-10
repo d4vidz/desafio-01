@@ -55,8 +55,8 @@ preview tem um workspace
 temporário e não monta automaticamente a árvore do repositório. O bootstrap de
 cada notebook baixa o contexto compartilhado pinado acima e verifica o hash do
 CSV antes de importar os módulos. Em Molab, o contexto fica sempre em
-`desafio-01-<snapshot>`; se houver `spotify_molab_bundle.zip`, ele é extraído
-nesse diretório isolado, nunca diretamente no workspace.
+`desafio-01-<snapshot>`, baixado diretamente do GitHub, nunca de arquivos
+soltos no workspace.
 
 Esse fluxo cria um link por notebook, todos apontando para o mesmo repositório
 e branch, mas não um único explorador de arquivos que alterne notebooks dentro
@@ -65,8 +65,8 @@ seria uma implantação própria, não o fluxo usual do Molab.
 
 Para um repositório GitLab sem mirror, o fallback é fazer upload dos arquivos
 pelo File Browser; o CSV e os módulos precisam estar na árvore esperada. Um
-bundle temporário pode ser usado para esse teste, mas não deve ser commitado,
-nem substituir o CSV versionado ou o diretório do snapshot.
+O contexto deve vir do ZIP do commit pinado; arquivos soltos ou bundles
+temporários não substituem o diretório do snapshot.
 
 Após a publicação de um novo commit no GitLab, atualize o espelho GitHub antes
 de usar o preview. A tabela deve registrar commit/ref de origem, data de

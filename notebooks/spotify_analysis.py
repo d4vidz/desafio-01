@@ -22,23 +22,29 @@ def _():
     from urllib.request import urlretrieve
     from zipfile import ZipFile
 
-    repo_root = Path.cwd()
+    local_root = next(
+        (
+            candidate
+            for start in (Path.cwd(), *Path(__file__).resolve().parents)
+            for candidate in (start, *start.parents)
+            if (candidate / ".git").exists()
+            and (candidate / "pyproject.toml").exists()
+            and (candidate / "spotify_data").exists()
+        ),
+        None,
+    )
     snapshot = "cf7368ac8363aebe958eef56afb1de6f95abfc78"
-    local_repo = (repo_root / ".git").exists() and (repo_root / "pyproject.toml").exists()
-    if not local_repo:
+    if local_root is None:
+        repo_root = Path.cwd()
         snapshot_root = repo_root / f"desafio-01-{snapshot}"
-        if not snapshot_root.exists():
-            bundle_path = repo_root / "spotify_molab_bundle.zip"
-            if bundle_path.exists():
-                snapshot_root.mkdir()
-                with ZipFile(bundle_path) as bundle:
-                    bundle.extractall(snapshot_root)
-            else:
-                archive_path = repo_root / f"desafio-01-{snapshot}.zip"
-                urlretrieve(f"https://github.com/d4vidz/desafio-01/archive/{snapshot}.zip", archive_path)
-                with ZipFile(archive_path) as archive:
-                    archive.extractall(repo_root)
+        if not (snapshot_root / "spotify_data").exists():
+            archive_path = repo_root / f"desafio-01-{snapshot}.zip"
+            urlretrieve(f"https://github.com/d4vidz/desafio-01/archive/{snapshot}.zip", archive_path)
+            with ZipFile(archive_path) as archive:
+                archive.extractall(repo_root)
         repo_root = snapshot_root
+    else:
+        repo_root = local_root
     if not (repo_root / "spotify_data").exists():
         raise RuntimeError(f"Contexto Spotify não encontrado em {repo_root}.")
     csv_snapshot = repo_root / "data" / "raw" / "spotify_tracks.csv"
