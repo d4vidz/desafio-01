@@ -6,9 +6,9 @@
     "contract_version": "0.1"
   },
   "repository": {
-    "commit_at_render": "efffedc30baeb5beb21603f3c1fedefcaad182b4",
+    "commit_at_render": "50914838a2a48b1d9a2c2c25bfe57265cdd866e1",
     "ref_at_render": "model/48-popularity-validation",
-    "working_tree_dirty_at_render": true,
+    "working_tree_dirty_at_render": false,
     "environment_lock_sha256": "7da63cbb28af87881fc375c1e1c8ea702f547d7d4140697f034b5d9707e55271"
   },
   "environment": {
@@ -21,7 +21,7 @@
       "notebook": "notebooks/data_contract_audit.py",
       "notebook_sha256": "9cb9a0b1fc75b8378f1d469a2151913d2a207f641ac43ed2ebfbb4bffbb60a61",
       "html": "artifacts/notebooks/html/data_contract_audit.html",
-      "html_sha256": "65e37a84fc2d44012b2d75d7feb088817f894933af16714428f54c47d1033851",
+      "html_sha256": "fbfea0106ab0adeaa8950ce7b37fa18cb9b53adb838d8dd1ae42c3e5cc0c30e5",
       "html_bytes": 125440,
       "declared_evidence_statuses": [
         "infraestrutura"
@@ -39,7 +39,7 @@
       "notebook": "notebooks/explorations/popularity_associations.py",
       "notebook_sha256": "099a6532dccdc3ec22ffae0d4c59a68cd1f76834e57d9e35f6eda65ee7088db2",
       "html": "artifacts/notebooks/html/popularity_associations.html",
-      "html_sha256": "3673b03249fb5b612c480d4534afaab2dce7b1d07915b9ea2afad0c98894082b",
+      "html_sha256": "708dc83eab78f4ac66ba94cb4d255a0d95836e37a234b005639ccd453d404c09",
       "html_bytes": 1157418,
       "declared_evidence_statuses": [
         "protótipo"
@@ -59,8 +59,8 @@
       "notebook": "notebooks/explorations/genre_representations.py",
       "notebook_sha256": "916f777530af276f86da190f96690a0cbc6cf1fd613d6cf2c0b6ffe4fb998426",
       "html": "artifacts/notebooks/html/genre_representations.html",
-      "html_sha256": "dd317d70dee4e906d2f7cbfd672ca4d455c5782fca8f45165af6f9ee51adfe1e",
-      "html_bytes": 168243,
+      "html_sha256": "10ea27d3f342e2ab5b17f4480b76751b9f77d4103d4fae92e1d1d40648b341d2",
+      "html_bytes": 168245,
       "declared_evidence_statuses": [
         "infraestrutura",
         "protótipo"
@@ -78,7 +78,7 @@
       "notebook": "notebooks/explorations/musical_structure.py",
       "notebook_sha256": "7decd9de6fb8b0d3f9c6d35545c50744e53589f36292d13ade31c6f3af27aefd",
       "html": "artifacts/notebooks/html/musical_structure.html",
-      "html_sha256": "c42b9b19fdf5a9a043aa50f2bff25fe5afdf1dcef57cd8dd18bda16eb10aeeae",
+      "html_sha256": "5f47ccf133a6c649f8788d27f7c2e0f6ed17cf3389de9ba5bae45bde58f495a4",
       "html_bytes": 370621,
       "declared_evidence_statuses": [
         "protótipo"
@@ -96,10 +96,10 @@
     },
     {
       "notebook": "notebooks/explorations/popularity_validation.py",
-      "notebook_sha256": "cfdb2cb04b80dc597fb1659b171990292cdc8f53db48bee46b5c595371c68e10",
+      "notebook_sha256": "82502f4c34570bbf2be940163aee16ed7b7f5fca22a3299374a903ffcad387c2",
       "html": "artifacts/notebooks/html/popularity_validation.html",
-      "html_sha256": "3c57ad814b1ac98b8ad69aa0edd3b2545d491429d9a658df8a0aa3d44ce5380c",
-      "html_bytes": 134627,
+      "html_sha256": "e48ee6a7ea47d34719ffefd302f3588c9748c479d1059dae65aa4f6bc8330e6c",
+      "html_bytes": 135870,
       "declared_evidence_statuses": [
         "protótipo"
       ],
@@ -118,8 +118,8 @@
       "notebook": "notebooks/spotify_analysis.py",
       "notebook_sha256": "76c7a870b0271006073d9f88cf9b3426d6a36fdbfcd11286f86b2667ab4f5f80",
       "html": "artifacts/notebooks/html/spotify_analysis.html",
-      "html_sha256": "a825c3950485c8f8ec4e5ce6013d15a024a4f0779e708876bf3627e3d29cfc7e",
-      "html_bytes": 6005752,
+      "html_sha256": "dfcb1bdfe9a5be0d2f04a0cb2b682c22b324fe9b8a4904632f663f492f78c59b",
+      "html_bytes": 6005750,
       "declared_evidence_statuses": [
         "infraestrutura",
         "experimento_completo",
